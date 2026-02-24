@@ -1,0 +1,405 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+import argparse
+import time
+import traceback
+import json
+from AgentDropout.agents import AgentRegistry
+from AgentDropout.agents.supervisor_reasoning_pick_metric import Supervisor
+from AgentDropout.agents.final_decision import FinalWriteCodeMBPP
+from autogen_agentchat.teams import SelectorGroupChat
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.ui import Console
+import asyncio
+from typing import List, Tuple, Dict
+import re
+from typing import List, Tuple, Dict, Any
+import numpy as np 
+from tqdm import tqdm
+
+from AgentDropout.tools.coding.python_executor import MBPPExecutor
+
+# ==============================================================================
+def log_message(msg: str, log_file: str = None):
+    print(msg)
+    if log_file:
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+
+
+# ==============================================================================
+def load_global_resources(metric_file, cache_file):
+    print(f"Loading Global Resources...")
+    print(f" - Metrics: {metric_file}")
+    print(f" - Cache:   {cache_file}")
+    
+    with open(metric_file, "r", encoding='utf-8') as f:
+        metrics = json.load(f)
+        
+    emb_map = {}
+    if os.path.exists(cache_file):
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        record = json.loads(line)
+                        emb_map[record["name"]] = record["vector"]
+                    except: pass
+                
+    vectors_list = []
+    for m in metrics:
+        name = m['name']
+        if name in emb_map:
+            vectors_list.append(np.array(emb_map[name], dtype=np.float32))
+        else:
+            if len(emb_map) > 0:
+                vectors_list.append(np.zeros(len(next(iter(emb_map.values()))), dtype=np.float32))
+            else:
+                vectors_list.append(np.array([]))
+            
+    embeddings = np.stack(vectors_list) if vectors_list else np.array([])
+    print(f"Global Resources Loaded. Embedding Shape: {embeddings.shape}")
+    
+    return metrics, embeddings
+
+def prepare_mbpp_prompt_data(mbpp_problem: dict) -> dict | None:
+    task_description = mbpp_problem.get('text') or mbpp_problem.get('prompt')
+    code_raw = mbpp_problem.get('code')
+    test_list = mbpp_problem.get('test_list', []) 
+    test_plus_code = mbpp_problem.get('test', "") 
+
+    if not task_description or not code_raw or (not test_list and not test_plus_code):
+        return None
+
+    entry_point = None
+    if test_list:
+        first_test = test_list[0]
+        match_test = re.search(r"assert\s+([a-zA-Z_]\w*)\s*\(", first_test)
+        if match_test:
+            entry_point = match_test.group(1)
+            
+    if not entry_point:
+        matches = list(re.finditer(r"def\s+([a-zA-Z_]\w*)\s*\(", code_raw))
+        if matches:
+            entry_point = matches[-1].group(1)
+            
+    if not entry_point: return None
+
+    sig_pattern = f"def\\s+{entry_point}\\s*\\(.*?\\)\\s*:"
+    match_sig = re.search(sig_pattern, code_raw, re.DOTALL)
+    
+    if match_sig:
+        signature_str = match_sig.group(0) 
+        prompt_suffix = signature_str.strip().rstrip(":") 
+    else:
+        signature_str = f"def {entry_point}(...):"
+        prompt_suffix = f"def {entry_point}("
+
+    task_description = task_description.strip()
+    note = f"Note: The required function signature is: `{signature_str}`"
+    final_prompt = f"{task_description}\n{note}\n\n{prompt_suffix}"
+    
+    combined_test_parts = []
+    if test_plus_code:
+        combined_test_parts.append(f"# --- MBPP+ Tests ---\n{test_plus_code}")
+    if test_list:
+        simple_asserts = "\n".join(test_list)
+        combined_test_parts.append(f"# --- Simple Assertions ---\n{simple_asserts}")
+
+    final_test_code = "\n\n".join(combined_test_parts)
+
+    return {
+        "id": mbpp_problem.get('task_id', 'N/A'),
+        "prompt": final_prompt, 
+        "test": final_test_code, 
+        "entry_point": entry_point,     
+        "original_code_snippet": code_raw 
+    }
+
+def extract_code_from_response(response):
+    if isinstance(response, str):
+        code = response.lstrip("```python\n").rstrip("\n```")
+        if "```" in code:
+            code = code.split("```")[0]
+        return code.strip()
+    return ""
+
+
+# ==============================================================================
+def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupChat, FinalWriteCodeMBPP, Dict[str, str], Supervisor]:
+    
+    use_llm = not args.force_direct_search
+
+    supervisor = Supervisor(
+        model=args.supervisor_model,
+        api_key="EMPTY",
+        base_url=args.supervisor_url,
+        domain="code", 
+        pass_rate=args.pass_rate,
+        prune_flag=True,
+        
+        embedding_api_key="EMPTY",
+        embedding_model=args.embedding_model,
+        embedding_api_base=args.embedding_url,
+        
+        preloaded_metrics=preloaded_metrics,
+        preloaded_embeddings=preloaded_embeddings,
+        
+        direct_k=args.direct_k,
+        use_simple_audit=int(args.use_simple_audit),
+        random_k=args.random_k,
+    )
+
+    agent_resgistry = AgentRegistry()
+    participants = [
+        agent_resgistry.get(
+            agent_name="CodeWriting_mbpp", 
+            name=f"Participant_{i + 1}",
+            domain="mbpp",
+            model=args.reasoning_model,
+            api_key="EMPTY",
+            base_url=args.reasoning_url,
+            supervisor=supervisor,
+            reflection_time=args.retries_times,
+        ) for i in range(5)
+    ]
+
+    role_map = {agent.name: agent.role for agent in participants}
+    for agent in participants:
+        agent.role_map = role_map
+
+    selector_prompt = """You are the team's scrum master. Select the next agent to advance the task."""
+
+    model_client = OpenAIChatCompletionClient(
+        model="####",
+        api_key="####",
+        base_url="####",
+    )
+
+    text_mention_termination = TextMentionTermination("TERMINATE")
+    max_messages_termination = MaxMessageTermination(max_messages=args.max_turns)
+    termination = text_mention_termination | max_messages_termination
+
+    team = SelectorGroupChat(
+        participants=participants,
+        model_client=model_client,
+        termination_condition=termination,
+        selector_prompt=selector_prompt,
+        allow_repeated_speaker=True, 
+    )
+
+    decision_maker = AgentRegistry.get(
+        agent_name="FinalWriteCodeMBPP",
+        name="DecisionMaker",
+        domain="mbpp",
+        model=args.reasoning_model,
+        api_key="EMPTY",
+        base_url=args.reasoning_url,
+    )
+
+    return team, decision_maker, role_map, supervisor
+
+
+# ==============================================================================
+async def reasoning(question, team: SelectorGroupChat, decision_maker: FinalWriteCodeMBPP, role_map: Dict[str, str], supervisor: Supervisor):
+    
+    is_baseline_mode = getattr(args, 'baseline_only', False)
+
+    if is_baseline_mode:
+        print(f"\n>>> [Mode] Baseline Only")
+        await team.reset()
+        supervisor.reset()
+        supervisor.prune_flag = False 
+        await Console(team.run_stream(task=question))
+        history_messages = supervisor.get_messages_above_threshold()
+    else:
+        print(f"\n>>> [Phase 1] Adversarial Audit Mode")
+        await team.reset()
+        supervisor.reset()
+        supervisor.prune_flag = True 
+        await Console(team.run_stream(task=question))
+        
+        history_messages = supervisor.get_messages_above_threshold()
+        if len(history_messages) <= 1:
+            print(f"\n⚠️ Fallback Triggered!")
+            await team.reset()
+            supervisor.reset()
+            original_prune_flag = supervisor.prune_flag
+            supervisor.prune_flag = False 
+            await Console(team.run_stream(task=question))
+            history_messages = supervisor.get_messages_above_threshold()
+            supervisor.prune_flag = original_prune_flag
+
+    print("\n" + "=" * 50)
+    print("--- [DEBUG] Final Decision ---")
+    
+    raw_answer = await decision_maker.run_decision(history_messages=history_messages, role_map=role_map, task=question)
+    raw_content = raw_answer.content.strip()
+    final_answer = extract_code_from_response(raw_content)
+    
+    print(f"\n[DEBUG] Extracted Code Length: {len(final_answer)}")
+    print("=" * 50 + "\n")
+
+    ret_scores = supervisor.get_scores(role_map)
+    reflection_records = getattr(supervisor, 'reflection_records', [])
+    
+    return final_answer, ret_scores, reflection_records
+
+
+# ==============================================================================
+def write_to_file(out_file, data_id, data):
+    exist_data = {}
+    if os.path.exists(out_file):
+        try:
+            with open(out_file, "r") as f:
+                exist_data = json.load(f)
+        except: pass
+
+    exist_data[str(data_id)] = data
+    try:
+        sorted_keys = sorted(exist_data.keys(), key=lambda x: int(x))
+    except:
+        sorted_keys = sorted(exist_data.keys())
+    sorted_data = {key: exist_data[key] for key in sorted_keys}
+
+    with open(out_file, "w") as f:
+        json.dump(sorted_data, f, indent=4, ensure_ascii=False)
+
+async def run_sample(data, out_file, team, decision_maker, role_map, supervisor, log_file_path):
+    instance_id = data.get("id", "unknown")
+    
+    try:
+        current_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        log_message(f"\n{'='*40}", log_file_path)
+        log_message(f"=== TASK ID: {instance_id} ===", log_file_path)
+        log_message(f"{'='*40}", log_file_path)
+        log_message(f"--- [ {current_time} ] Start Processing ---", log_file_path)
+
+        task = data["prompt"] 
+        test_assertions_str = data.get("test", "")
+        
+        answer, scores, reflection_records = await reasoning(task, team, decision_maker, role_map, supervisor)
+
+        is_solved = False
+        execution_result = ""
+        error = ""
+
+        if answer and test_assertions_str:
+            try:
+                executor = MBPPExecutor()
+                is_solved, execution_result, error_tuple = executor.execute(answer, [test_assertions_str], timeout=15)
+                error = str(error_tuple)
+            except Exception as e:
+                is_solved = False
+                execution_result = "Executor crashed."
+                error = str(e)
+
+        log_message(f"Finished: {instance_id} | Solved: {is_solved} | {execution_result}", log_file_path)
+
+        write_to_file(
+            out_file,
+            instance_id,
+            {
+                "answer": data.get("original_code_snippet", ""),
+                "hypothesis": answer,
+                "sovled": is_solved,
+                "execution_result": execution_result,
+                "error": error,
+                "question": task,
+                "scores": scores,
+                "reflection_records": reflection_records
+            }
+        )
+        
+    except Exception as e:
+        log_message(f"!!!!!! [CRITICAL ERROR] Task {instance_id}: {e} !!!!!!", log_file_path)
+        traceback.print_exc()
+
+async def main():
+    if not os.path.exists(args.in_file):
+        print(f"[ERROR] Input file not found: {args.in_file}")
+        return
+
+    try:
+        with open(args.in_file, "r", encoding='utf-8') as f:
+            input_lines = f.readlines()
+        raw_mbpp_data = [json.loads(line) for line in input_lines if line.strip()]
+        
+        adapted_data = []
+        for item in raw_mbpp_data:
+            res = prepare_mbpp_prompt_data(item) 
+            if res: adapted_data.append(res)
+        
+        if args.limit is not None and args.limit > 0:
+            print(f"[INFO] 🔧 Limit applied: Processing first {args.limit} tasks.")
+            adapted_data = adapted_data[:args.limit]
+        
+        print(f"[INFO] Loaded {len(adapted_data)} tasks.")
+
+    except Exception as e:
+        print(f"[ERROR] Data loading failed: {e}")
+        return
+
+    global_metrics, global_embeddings = load_global_resources(args.metric_pool_file, args.embedding_cache_file)
+
+    if args.log_file:
+        FINAL_LOG_FILE = args.log_file
+    else:
+        base_dir = os.path.dirname(args.out_file)
+        base_name = os.path.basename(args.out_file).replace(".json", "_detailed.log")
+        FINAL_LOG_FILE = os.path.join(base_dir, base_name)
+
+    os.makedirs(os.path.dirname(FINAL_LOG_FILE), exist_ok=True)
+    
+    with open(FINAL_LOG_FILE, "w", encoding="utf-8") as f:
+        f.write(f"=== MBPP Run Logs ===\n")
+        f.write(f"Total: {len(adapted_data)}\n\n")
+
+    print(f"🚀 Processing {len(adapted_data)} tasks...")
+    print(f"📝 Logs: {FINAL_LOG_FILE}")
+    
+    start_time = time.time()
+    
+    for instance in tqdm(adapted_data, desc="Processing"):
+        team, decision_maker, role_map, supervisor = init_team(global_metrics, global_embeddings)
+        await run_sample(instance, args.out_file, team, decision_maker, role_map, supervisor, FINAL_LOG_FILE)
+    
+    total_time = time.time() - start_time
+    print(f"\n🎉 Done in {total_time:.2f}s")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--in_file", type=str)
+    parser.add_argument("--out_file", type=str)
+    parser.add_argument("--log_file", type=str)
+    
+    parser.add_argument("--reasoning_url", type=str)
+    parser.add_argument("--reasoning_model", type=str)
+    parser.add_argument("--supervisor_url", type=str)
+    parser.add_argument("--supervisor_model", type=str)
+    
+    parser.add_argument("--embedding_url", type=str, required=True)
+    parser.add_argument("--embedding_model", type=str, required=True)
+    parser.add_argument("--metric_pool_file", type=str, required=True)
+    parser.add_argument("--embedding_cache_file", type=str, required=True)
+    
+    parser.add_argument("--max_turns", type=int)
+    parser.add_argument("--metrics_retrieve_k", type=int, default=20)
+    parser.add_argument("--pass_rate", type=float, default=0.8)
+    parser.add_argument("--retries_times", type=int, default=3)
+    
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--baseline_only", action="store_true")
+    
+    parser.add_argument("--use_simple_audit", action="store_true", help="Enable Simple Audit")
+    
+    parser.add_argument("--direct_k", type=int, default=5)
+    parser.add_argument("--random_k", type=int, default=0)
+
+    args = parser.parse_args()
+
+    asyncio.run(main())

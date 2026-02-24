@@ -1,0 +1,1 @@
+Due to space limitations in the warehouse, please run embed_stetrics-trigger.py yourself to prepare the vector cache for testing
