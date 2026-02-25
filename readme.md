@@ -9,6 +9,7 @@ This repository anonymously releases the codes and data for the paper:
 - **[File Structure](#structure)**
 - **[Requirements](#requirements)**
 - **[Quick Start](#start)**
+- **[Acknowledgments](#Acknowledgments)**
 
 ## **🛡️ About AgentDropoutV2**<a name="about"></a>
 
@@ -92,3 +93,7 @@ pip install -r requirements.txt
 
 3. **Use your custom pool in test scripts**
    Update `METRIC_POOL_FILE` and `EMBEDDING_CACHE_FILE` in `test/run-*.sh` to point to your newly generated files.
+
+## **Acknowledgments**
+
+This code framework is based on AutoGen and AgentDropout.
