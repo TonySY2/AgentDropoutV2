@@ -12,11 +12,11 @@ INPUT_FILE = "deduped-mixed_metrics_two_pool.json"
 OUTPUT_CACHE_FILE = "deduped-mixed_two_pool-trigger.jsonl"
 
 
-EMBEDDING_MODEL = "####"
+EMBEDDING_MODEL = "###"
 EMBEDDING_API_KEY = "EMPTY"
-EMBEDDING_BASE_URL = "####"
+EMBEDDING_BASE_URL = "###"
 
-CONCURRENCY_LIMIT = 50
+CONCURRENCY_LIMIT = 50  #Embedded concurrency
 # ==============================================================================
 
 class MetricEmbedder:

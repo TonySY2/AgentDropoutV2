@@ -1,6 +1,6 @@
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 import argparse
 import time
@@ -86,6 +86,7 @@ def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupCha
         embedding_model=args.embedding_model,
         embedding_api_base=args.embedding_url,
         
+        
         preloaded_metrics=preloaded_metrics,
         preloaded_embeddings=preloaded_embeddings,
         
@@ -122,9 +123,9 @@ Only select one agent.
 """
 
     model_client = OpenAIChatCompletionClient(
-        model="####", 
-        api_key="####", 
-        base_url="####"
+        model=args.selector_model, 
+        api_key=args.selector_key, 
+        base_url=args.selector_url
     )
     
     text_mention_termination = TextMentionTermination("TERMINATE")
@@ -324,6 +325,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_file', type=str)
     parser.add_argument('--out_file', type=str)
+    parser.add_argument('--selector_url', type=str)
+    parser.add_argument('--selector_model', type=str)
+    parser.add_argument('--selector_key', type=str)
+    
     parser.add_argument('--reasoning_url', type=str)
     parser.add_argument('--reasoning_model', type=str)
     parser.add_argument('--supervisor_url', type=str)
@@ -335,8 +340,8 @@ if __name__ == '__main__':
     parser.add_argument("--embedding_cache_file", type=str, required=True)
     
     parser.add_argument('--max_turns', type=int)
-    parser.add_argument('--metrics_retrieve_k', type=int)
-    parser.add_argument('--pass_rate', type=float, default=0.8)
+
+    parser.add_argument('--pass_rate', type=float, default=1)
     parser.add_argument('--retries_times', type=int, default=3)
     parser.add_argument('--log_file', type=str)
     
