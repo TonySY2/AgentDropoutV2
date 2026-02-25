@@ -41,8 +41,14 @@ for ((i=0; i<$node_num; i++)); do
         --in_file ${tmp_dir}/part_${i}.jsonl \
         --out_file ${result_dir}/part_${i}.json \
         --log_file ${LOG_FILE} \
+        --selector_url "###" \
+        --selector_model "gpt-4.1-mini" \
+        --selector_key "####" \
         --reasoning_url ${reasoning_api_list[$i]} \
         --reasoning_model "####" \
+        --supervisor_url "###" \
+        --supervisor_model "gpt-4o" \
+        --supervisor_api_key "####" \
         --embedding_url ${embedding_api_list[$i]} \
         --embedding_model "####" \
         --max_turns 7 \

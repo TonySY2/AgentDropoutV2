@@ -12,22 +12,22 @@ from typing import List, Dict, Any
 
 
 
-INPUT_DATA_FILE = "results/part_0.json"
-OUTPUT_METRICS_FILE = "metrics_pool_deduped.json"      
-OUTPUT_EMBEDDING_FILE = "metrics_embeddings_trigger.jsonl" 
+INPUT_DATA_FILE = "results/part_0.json"     #Raw result file obtained from training
+OUTPUT_METRICS_FILE = "metrics_pool_deduped.json"       #A refined and non-redundant indicator database
+OUTPUT_EMBEDDING_FILE = "metrics_embeddings_trigger.jsonl"  #Embedding information of the "trigger_condition" part of all indicators
 
 
-LLM_MODEL = "####"
+LLM_MODEL = "####"  #A large model used to meticulously determine whether something is repetitive
 LLM_API_KEY = "EMPTY"
 LLM_BASE_URL = "####"
 
 
-EMBEDDING_MODEL = "####"
+EMBEDDING_MODEL = "####"    #Model for embeddings
 EMBEDDING_API_KEY = "EMPTY"
 EMBEDDING_BASE_URL = "####"
 
 
-CONCURRENCY_LIMIT = 50
+CONCURRENCY_LIMIT = 50  #CONCURRENCY for embedding.
 
 
 class PipelineProcessor:

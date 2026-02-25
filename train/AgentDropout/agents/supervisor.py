@@ -207,18 +207,11 @@ class Supervisor():
         self.current_full_task_json = None
         
     def _parse_json_from_response(self, response: str) -> List[Dict]:
-        
         response = response.strip()
         
-
-        try:
-            parsed = repair_json(response, return_objects=True)
-            if isinstance(parsed, list): return parsed
-            if isinstance(parsed, dict): return [parsed]
-        except:
-            pass
-
-        match_list = re.search(r"```json\s*(\[.*?\])\s*```", response, re.DOTALL)
+        # 1. 尝试使用正则提取 Markdown 代码块中的 JSON
+        # 使用 re.DOTALL 让 . 匹配换行符
+        match_list = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", response, re.DOTALL | re.IGNORECASE)
         if match_list:
             json_str = match_list.group(1)
             try:
@@ -226,32 +219,30 @@ class Supervisor():
                 if isinstance(parsed, list): return parsed
             except: pass
 
+        # 2. 如果正则没找到，尝试暴力寻找最外层的 [ ]
+        # 很多时候模型会在最后输出 JSON，我们找最后一个 ] 和对应的 [
         try:
-            start = response.find('[')
+            # 从后往前找最后一个 ']'
             end = response.rfind(']')
-            if start != -1 and end != -1 and end > start:
-                json_str = response[start : end+1]
-                parsed = repair_json(json_str, return_objects=True)
-                if isinstance(parsed, list): return parsed
-        except:
-            pass
+            if end != -1:
+                # 从开始找第一个 '['
+                start = response.find('[')
+                if start != -1 and end > start:
+                    potential_json = response[start : end+1]
+                    parsed = repair_json(potential_json, return_objects=True)
+                    if isinstance(parsed, list): return parsed
+        except: pass
 
-
+        # 3. 兜底：如果上面都失败，尝试直接修复整个字符串
         try:
-            start = response.find('{')
-            end = response.rfind('}')
-            if start != -1 and end != -1 and end > start:
-                json_str = response[start : end+1]
-                parsed = repair_json(json_str, return_objects=True)
-                if isinstance(parsed, dict): return [parsed]
-                if isinstance(parsed, list): return parsed
-        except:
-            pass
+            parsed = repair_json(response, return_objects=True)
+            if isinstance(parsed, list): return parsed
+            if isinstance(parsed, dict): return [parsed]
+        except: pass
 
         print(f"[Supervisor] ⚠️ JSON Parse Failed. Raw content start: {response[:100]}...")
+        # 返回空列表而不是包含 error 的 dict，避免后续流程报错，或者保留你的 error 逻辑
         return [{"error": "JSON parsing failed", "raw": response}]
-
-
     # ==============================================================================
 
     async def _generate_adversarial_metrics(self, trajectory: Dict[str, Any], full_task_json: str) -> List[Dict[str, Any]]:
@@ -353,7 +344,21 @@ class Supervisor():
                     continue
                 
  
-                metric_name = generated_data.get("name", "").strip()
+                # === 新增：键名归一化处理 ===
+                # 将所有键转换为小写，处理 'Name', 'NAME', 'Error_Name' 等情况
+                normalized_data = {}
+                for k, v in generated_data.items():
+                    normalized_data[k.lower()] = v
+                
+                # 尝试多种可能的 key 获取 name
+                metric_name = normalized_data.get("name") or \
+                              normalized_data.get("error_name") or \
+                              normalized_data.get("error_type") or \
+                              ""
+                metric_name = metric_name.strip()
+                # ===========================
+                
+                
                 if not metric_name:
            
                     print(f"[Supervisor] ⚠️ Item {idx+1}: Missing 'name'. Auto-fixing...")

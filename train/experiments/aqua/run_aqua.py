@@ -80,9 +80,9 @@ Only select one agent.
 """
 
     model_client = OpenAIChatCompletionClient(
-        model="####", 
-        api_key="####", 
-        base_url="####"
+        model=args.selector_model, 
+        api_key=args.selector_key, 
+        base_url=args.selector_url
     )
 
     text_mention_termination = TextMentionTermination("TERMINATE")
@@ -305,6 +305,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_file', type=str, required=True)
     parser.add_argument('--out_file', type=str, required=True)
+    
+    parser.add_argument('--selector_url', type=str)
+    parser.add_argument('--selector_model', type=str)
+    parser.add_argument('--selector_key', type=str)
+    
     parser.add_argument('--reasoning_url', type=str, required=True)
     parser.add_argument('--reasoning_model', type=str, required=True)
     
