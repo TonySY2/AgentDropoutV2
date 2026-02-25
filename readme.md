@@ -21,54 +21,25 @@ It acts as an active firewall during MAS execution:
 4.  **Fallback**: A safeguard mechanism preserves structural integrity if too many agents are pruned.
 
 
+<p align="center">
+  <img src="image/readme/main-picture.png" alt="Main Picture">
+</p>
+<p align="center"><strong>The Framework of AgentDropout</strong></p>
+
 ## **📜 File Structure**<a name="structure"></a>
 
 The repository is organized into two main components: `train` (for offline indicator pool construction) and `test` (for online inference).
 
-| Directory | Contents |
-| :--- | :--- |
-| `./train` | **Phase 1: Pool Construction**. Codes for sampling failure trajectories and mining adversarial indicators. |
-| &nbsp;&nbsp;`./train/experiments` | Scripts to run MAS and collect raw failure logs. |
-| &nbsp;&nbsp;`./train/Extraction...py` | The core script for Indicator Extraction, Deduplication, and Embedding. |
-| `./test` | **Phase 2: Inference**. Codes for the test-time Rectify-or-Reject mechanism. |
-| &nbsp;&nbsp;`./test/AgentDropout` | Core framework logic (Supervisor, MathSolver, Grader). |
-| &nbsp;&nbsp;`./test/metrics_pool` | The pre-built **Adversarial Indicator Pool** and embedding scripts. |
-| &nbsp;&nbsp;`./test/experiments` | Runners for specific datasets (MATH, AQuA, GSM8K, etc.). |
-| &nbsp;&nbsp;`./test/run-*.sh` | Shell scripts to launch experiments easily. |
-| `./test/project_datasets` | Evaluation datasets (MATH-500, AQuA, AIME, etc.). |
 
 
+## **🛠️ Requirements**<a name="requirements"></a>
 
-## **🛠️ System Architecture & Requirements**
+This project can be reproduced with a single Python environment:
 
-The framework adopts a decoupled **Client-Server architecture** to ensure modularity and inference efficiency. To replicate our experiments, we recommend setting up two separate environments.
-
-### **1. Inference Server Environment**
-This environment hosts the LLM service. We utilized **NVIDIA A800 GPUs** for deployment.
-*   **Core Engine:** `vLLM == 0.14.1`.
-*   **Base Framework:** `PyTorch == 2.9.1`.
-
-To set up the server environment, please use:
 ```bash
-conda create -n vllm_env python=3.10
-conda activate vllm_env
-pip install -r requirements_vllm.txt
-```
-
-### **2. Agent Client Environment**
-This environment handles the core multi-agent logic, evaluation pipelines, and retrieval-augmented generation (RAG).
-*   **Language:** `Python == 3.10`
-*   **Key Dependencies:**
-    *   `openai == 2.15.0` (For API communication)
-    *   `sentence-transformers == 5.2.2` (For retrieval augmentation)
-    *   `json_repair == 0.55.1` (For robust JSON parsing)
-    *   `numpy`, `tqdm`, `pyautogen` (As specified in dependencies)
-
-To set up the client/test environment, please use:
-```bash
-conda create -n agent_env python=3.10
-conda activate agent_env
-pip install -r requirements_test.txt
+conda create -n myenv python=3.10.18
+conda activate myenv
+pip install -r requirements.txt
 ```
 
 
