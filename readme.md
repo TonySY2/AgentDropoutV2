@@ -96,4 +96,4 @@ pip install -r requirements.txt
 
 ## **Acknowledgments**
 
-This code framework is based on AgentDropout.
+This code framework is based on [AgentDropout](https://github.com/wangzx1219/AgentDropout).
