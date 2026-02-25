@@ -96,4 +96,4 @@ pip install -r requirements.txt
 
 ## **Acknowledgments**
 
-This code framework is based on AutoGen and AgentDropout.
+This code framework is based on AgentDropout.
