@@ -55,6 +55,9 @@ for ((i=0; i<$node_num; i++)); do
         --in_file ${tmp_dir}/part_${i}.jsonl \
         --out_file ${result_dir}/part_${i}.json \
         --log_file ${log_dir}/node_${i}_detailed.log \
+        --selector_url "###" \
+        --selector_model "gpt-4.1-mini" \
+        --selector_key "####" \
         --reasoning_url ${reasoning_api_list[$i]} \
         --reasoning_model "####" \
         --supervisor_url ${supervisor_api_list[$i]} \

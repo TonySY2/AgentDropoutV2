@@ -174,9 +174,9 @@ def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupCha
     selector_prompt = """You are the team's scrum master. Select the next agent to advance the task."""
 
     model_client = OpenAIChatCompletionClient(
-        model="####",
-        api_key="####",
-        base_url="####",
+        model=args.selector_model, 
+        api_key=args.selector_key, 
+        base_url=args.selector_url
     )
 
     text_mention_termination = TextMentionTermination("TERMINATE")
@@ -376,6 +376,10 @@ if __name__ == "__main__":
     parser.add_argument("--in_file", type=str)
     parser.add_argument("--out_file", type=str)
     parser.add_argument("--log_file", type=str)
+    
+    parser.add_argument('--selector_url', type=str)
+    parser.add_argument('--selector_model', type=str)
+    parser.add_argument('--selector_key', type=str)
     
     parser.add_argument("--reasoning_url", type=str)
     parser.add_argument("--reasoning_model", type=str)

@@ -220,9 +220,9 @@ def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupCha
 
     from openai import Timeout
     model_client = OpenAIChatCompletionClient(
-        model="####",
-        api_key="####",
-        base_url="####",
+        model=args.selector_model, 
+        api_key=args.selector_key, 
+        base_url=args.selector_url,
         http_client_args={"timeout": Timeout(120.0, connect=10.0)},
         max_retries=3,
     )
@@ -443,6 +443,10 @@ if __name__ == "__main__":
     parser.add_argument("--in_file", type=str)
     parser.add_argument("--out_file", type=str)
     parser.add_argument("--log_file", type=str)
+    
+    parser.add_argument('--selector_url', type=str)
+    parser.add_argument('--selector_model', type=str)
+    parser.add_argument('--selector_key', type=str)
     
     parser.add_argument("--reasoning_url", type=str)
     parser.add_argument("--reasoning_model", type=str)
