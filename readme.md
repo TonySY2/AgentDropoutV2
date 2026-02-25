@@ -45,67 +45,50 @@ pip install -r requirements.txt
 
 ## **🚀 Quick Start**<a name="start"></a>
 
-### **1. Indicator Pool Construction (Optional)**
-*If you want to build your own indicator pool from scratch (The `train` folder).*
+### **1. Test-Time Inference (Main Workflow)**
 
-1.  **Collect Failure Trajectories**: Run the baseline MAS on training sets (e.g., MATH train set) to collect execution logs.
-    ```bash
-    cd train
-    bash run-math-train.sh
-    ```
-2.  **Mine & Deduplicate Indicators**: Use the extraction script to distill error patterns from logs and remove redundancy.
-    ```bash
-    python Extraction-deduplication-embedding.py 
-    ```
+> **Before running this part**: many `*.sh` and `*.py` files contain configurable fields such as model name, API URL/base URL, API key, and data/output paths (often marked as `####` / `###`). Please fill them based on your setup first.
 
-### **2. Test-Time Inference**
-*Run the proposed AgentDropoutV2 on benchmarks (The `test` folder).*
+1. **Generate trigger embeddings for the indicator pool**
+   ```bash
+   cd test/metrics_pool/two_pool
+   python embed_metrics-trigger.py
+   ```
+   This step generates the `.jsonl` embedding cache required at test time.
 
-> **Note**: You need to deploy the reasoning model (e.g., Qwen3-8B) and embedding model (e.g., Qwen3-Embedding) using vLLM servers before running the scripts.
+2. **Run evaluation scripts to produce result files**
+   ```bash
+   cd ../../
+   bash run-xxx.sh
+   ```
+   Replace `run-xxx.sh` with your target benchmark script (for example: `run-math500.sh`, `run-aqua.sh`, `run-livecode.sh`).
 
-⚠️ **IMPORTANT**: Due to file size limits, the pre-computed embedding cache file (`metrics_embeddings_trigger.jsonl`) is NOT included in this repository. 
-**You must generate it locally before running any inference.**
+3. **Compute final accuracy from result file**
+   ```bash
+   cd test
+   python calc_accuracy.py
+   ```
+   Set `FILE_PATH` in `calc_accuracy.py` to your generated result file path before running.
 
-1.  **Generate Embeddings**:
-    Run the embedding script to encode the indicator pool (`deduped-mixed_metrics_two_pool.json`) into vectors.
-    ```bash
-    cd test/metrics_pool/two_pool
-    python embed_metrics-trigger.py
-    ```
-    This will generate the `deduped-mixed_two_pool-trigger.jsonl` file required for retrieval.
+### **2. Training & Build Your Own Indicator Pool (Optional)**
 
-2.  **Run Inference**:
-    Once the embedding file is ready, you can launch the experiments.
+> **Before running this part**: scripts in `train/` also require you to fill model, URL/base URL, API key, and local path settings according to your environment.
 
-    **To run evaluation on MATH-500:**
-    ```bash
-    cd ../..  # Back to ./test directory
-    bash run-math500.sh
-    ```
+1. **Run training-time scripts to get raw result files**
+   ```bash
+   cd train
+   bash run-xxx.sh
+   ```
+   Replace `run-xxx.sh` with your selected training script (for example: `run-math-train.sh`, `run-aqua-train.sh`).
 
-    **To run evaluation on AQuA:**
-    ```bash
-    bash run-aqua.sh
-    ```
+2. **Extract, deduplicate, and build trigger embeddings**
+   ```bash
+   python Extraction-deduplication-embedding.py
+   ```
+   This script completes:
+   - extraction of raw indicators from training outputs,
+   - deduplication into a cleaner metric pool,
+   - embedding generation for `trigger_condition` (used by test-time retrieval).
 
-**Configuration Arguments**:
-Most shell scripts accept the following key arguments:
-
-*   **Model Configuration**
-    *   `--reasoning_model`: The model name used by participant agents (e.g., Qwen3-8B).
-    *   `--supervisor_model`: The model name used by the Supervisor/Rectifier (e.g., GPT-4o or Qwen3-8B).
-    *   `--embedding_model`: The model name used for embedding retrieval.
-
-*   **Pool & Cache**
-    *   `--metric_pool_file`: Path to the JSON file containing the adversarial indicator pool.
-    *   `--embedding_cache_file`: Path to the pre-computed embedding cache (`.jsonl`) for retrieval.
-
-*   **Workflow Control**
-    *   `--max_turns`: Maximum turns for the chat group. *Note: The actual maximum number of agent speaking rounds is `max_turns - 1`.*
-    *   `--retries_times`: Maximum number of self-correction retries allowed for an agent if errors are detected.
-
-*   **Ablation & Modes**
-    *   `--baseline_only`: If set, runs the standard MAS baseline without the Rectify-or-Reject mechanism.
-    *   `--use_simple_audit`: If set, uses a fixed, static metric for auditing instead of retrieving from the pool.
-    *   `--direct_k`: The number of indicators to retrieve based on semantic similarity (default: 5).
-    *   `--random_k`: If set to $x > 0$, retrieves $x$ random indicators instead of semantic matching (used for ablation studies).
+3. **Use your custom pool in test scripts**
+   Update `METRIC_POOL_FILE` and `EMBEDDING_CACHE_FILE` in `test/run-*.sh` to point to your newly generated files.
