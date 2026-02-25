@@ -17,7 +17,7 @@ This repository anonymously releases the codes and data for the paper:
 
 It acts as an active firewall during MAS execution:
 1.  **Intercept**: It intercepts agent outputs before they are broadcast.
-2.  **Rectify**: A retrieval-augmented rectifier scrutinizes the output using a **Failure-Driven Indicator Pool** (constructed from historical error patterns). It provides targeted feedback for iterative self-correction.
+2.  **Rectify**: A retrieval-augmented rectifier scrutinizes the output using a **Failure-Driven Indicator Pool** (constructed from historical error patterns). It provides targeted feedback for iterative correction.
 3.  **Reject**: If the output remains flawed after maximum retries, it is pruned to prevent error propagation.
 4.  **Fallback**: A safeguard mechanism preserves structural integrity if too many agents are pruned.
 
