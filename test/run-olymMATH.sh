@@ -23,6 +23,7 @@ EMBEDDING_CACHE_FILE="metrics_pool/two_pool/deduped-mixed_two_pool-trigger.jsonl
 
 
 INPUT_DATASET="project_datasets/olymMATH/OlymMATH-EN-EASY.jsonl" 
+#INPUT_DATASET="project_datasets/olymMATH/OlymMATH-EN-HARD.jsonl"   #easy or hard, you can choose one .
 
 # ===========================================
 
