@@ -375,7 +375,6 @@ if __name__ == "__main__":
     parser.add_argument("--metrics_retrieve_k", type=int, default=20)
     parser.add_argument("--pass_rate", type=float, default=0.8)
     parser.add_argument("--retries_times", type=int, default=3)
-    parser.add_argument("--num_samples", type=int, default=None)
     
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--baseline_only", action="store_true")

@@ -51,12 +51,12 @@ for ((i=0; i<$node_num; i++)); do
         --reasoning_key "####" \
         --supervisor_url "###" \
         --supervisor_model "gpt-4o" \
-        --supervisor_api_key "####" \
+        --supervisor_key "####" \
         --embedding_url ${embedding_api_list[$i]} \
         --embedding_model "####" \
         --embedding_key "####" \
         --max_turns 7 \
-        --num_samples 2000 \
+        --limit 2000 \
         > ${log_dir}/node_${i}.log 2>&1 & disown
 
  

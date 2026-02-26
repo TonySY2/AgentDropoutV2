@@ -49,7 +49,7 @@ for ((i=0; i<$node_num; i++)); do
         --reasoning_key "####" \
         --supervisor_url "###" \
         --supervisor_model "gpt-4o" \
-        --supervisor_api_key "####" \
+        --supervisor_key "####" \
         --embedding_url ${embedding_api_list[$i]} \
         --embedding_model "####" \
         --embedding_key "####" \

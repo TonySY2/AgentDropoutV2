@@ -78,7 +78,7 @@ def init_team() -> Tuple[SelectorGroupChat, FinalRefer, Dict[str, str], Supervis
 
     supervisor = Supervisor(
         model=args.supervisor_model,
-        api_key=args.supervisor_api_key,
+        api_key=args.supervisor_key,
         base_url=args.supervisor_url,
         embedding_model_name=args.embedding_model, 
         embedding_base_url=args.embedding_url,    
@@ -345,7 +345,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--supervisor_url', type=str, default="####") 
     parser.add_argument('--supervisor_model', type=str, default="####")
-    parser.add_argument('--supervisor_api_key', type=str, default="####")
+    parser.add_argument('--supervisor_key', type=str, default="####")
     
     parser.add_argument('--embedding_url', type=str, required=True)
     parser.add_argument('--embedding_model', type=str, required=True)

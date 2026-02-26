@@ -36,7 +36,7 @@ def init_team() -> Tuple[SelectorGroupChat, FinalRefer, Dict[str, str], Supervis
  
     supervisor = Supervisor(
         model=args.supervisor_model,
-        api_key=args.supervisor_api_key,
+        api_key=args.supervisor_key,
         base_url=args.supervisor_url,
         embedding_model_name=args.embedding_model,
         embedding_base_url=args.embedding_url,
@@ -266,10 +266,10 @@ async def main():
             
     input_data = raw_input_data
     
-    if args.num_samples is not None and args.num_samples > 0:
-        if args.num_samples < len(input_data):
-            print(f"[INFO] Sampling {args.num_samples} tasks.")
-            input_data = input_data[:args.num_samples] 
+    if args.limit is not None and args.limit > 0:
+        if args.limit < len(input_data):
+            print(f"[INFO] Sampling {args.limit} tasks.")
+            input_data = input_data[:args.limit] 
             
     print(f"[INFO] Total tasks to process: {len(input_data)}")
 
@@ -316,7 +316,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--supervisor_url', type=str, default="####") 
     parser.add_argument('--supervisor_model', type=str, default="####")
-    parser.add_argument('--supervisor_api_key', type=str, default="####")
+    parser.add_argument('--supervisor_key', type=str, default="####")
     
     parser.add_argument('--embedding_url', type=str, required=True)
     parser.add_argument('--embedding_model', type=str, required=True)
@@ -325,7 +325,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_file', type=str, help="Path for log file")
     
 
-    parser.add_argument('--num_samples', type=int, default=None)
+    parser.add_argument('--limit', type=int, default=None)
     
     args = parser.parse_args()
     os.makedirs(os.path.dirname(args.out_file), exist_ok=True)
