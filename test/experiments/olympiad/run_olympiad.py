@@ -106,7 +106,7 @@ def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupCha
     
     supervisor = Supervisor(
         model=args.supervisor_model,
-        api_key="EMPTY", 
+        api_key=args.supervisor_key, 
         base_url=args.supervisor_url,
         domain="olympiad",
         metrics_retrieve_k=args.metrics_retrieve_k,
@@ -114,7 +114,7 @@ def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupCha
         prune_flag=True, 
         metric_pool_file=args.metric_pool_file, 
         embedding_cache_file=args.embedding_cache_file, 
-        embedding_api_key="EMPTY",
+        embedding_api_key=args.embedding_key,
         embedding_model=args.embedding_model,
         embedding_api_base=args.embedding_url,
         preloaded_metrics=preloaded_metrics,
@@ -137,7 +137,7 @@ def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupCha
             name=f"Participant_{i + 1}",
             domain="olympiad",                
             model=args.reasoning_model,
-            api_key="EMPTY",
+            api_key=args.reasoning_key,
             base_url=args.reasoning_url,
             supervisor=supervisor,
             reflection_time=args.retries_times,
@@ -182,7 +182,7 @@ def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupCha
         name="DecisionMaker",
         domain="olympiad", 
         model=args.reasoning_model,
-        api_key="EMPTY",
+        api_key=args.reasoning_key,
         base_url=args.reasoning_url
     )
     
@@ -406,11 +406,14 @@ if __name__ == '__main__':
     
     parser.add_argument('--reasoning_url', type=str)
     parser.add_argument('--reasoning_model', type=str)
+    parser.add_argument("--reasoning_key", type=str, default="EMPTY")
     parser.add_argument('--supervisor_url', type=str) 
     parser.add_argument('--supervisor_model', type=str)
+    parser.add_argument("--supervisor_key", type=str, default="EMPTY")
     
     parser.add_argument("--embedding_url", type=str, required=True)
     parser.add_argument("--embedding_model", type=str, required=True)
+    parser.add_argument("--embedding_key", type=str, default="EMPTY")
     parser.add_argument("--metric_pool_file", type=str, required=True)
     parser.add_argument("--embedding_cache_file", type=str, required=True)
     

@@ -62,10 +62,13 @@ for ((i=0; i<$node_num; i++)); do
         --selector_key "####" \
         --reasoning_url ${reasoning_api_list[$i]} \
         --reasoning_model "####" \
+        --reasoning_key "####" \
         --supervisor_url ${supervisor_api_list[$i]} \
         --supervisor_model "####" \
+        --supervisor_key "####" \
         --embedding_url ${embedding_api_list[$i]} \
         --embedding_model "####" \
+        --embedding_key "####" \
         --metric_pool_file "####" \
         --embedding_cache_file "####" \
         --max_turns 7 \
