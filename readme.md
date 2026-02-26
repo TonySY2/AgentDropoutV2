@@ -1,6 +1,6 @@
 # AgentDropoutV2
 
-This repository anonymously releases the codes and data for the paper -- AgentDropout: Dynamic Agent Elimination for Token-Efficient and High-Performance LLM-Based Multi-Agent Collaboration.
+This repository anonymously releases the codes and data for the paper -- AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via Test-Time Rectify-or-Reject Pruning.
 
 <p align="center">
   <img src="image/readme/AgentDropoutV2-logo.png" alt="AgentDropoutV2 Logo" width="200">
@@ -70,7 +70,6 @@ pip install -r requirements.txt
 
 3. **Compute final accuracy from result file**
    ```bash
-   cd test
    python calc_accuracy.py
    ```
    Set `FILE_PATH` in `calc_accuracy.py` to your generated result file path before running.
@@ -100,7 +99,7 @@ pip install -r requirements.txt
 
 ## **🧾 Common Argument Reference**
 
-Most `run_*.py` / `run-*.sh` scripts share these arguments:
+Core experiment files in both `train` and `test` sections use the following arguments:
 
 | Argument | Description |
 |---|---|
@@ -114,8 +113,8 @@ Most `run_*.py` / `run-*.sh` scripts share these arguments:
 | `--max_turns` | Maximum number of MAS conversation turns. |
 | `--pass_rate` | Pruning/audit threshold used by supervisor. |
 | `--retries_times` | Total retry budget for one agent output, **including one final decision attempt**. |
-| `--direct_k` / `--random_k` | Number of direct-retrieved indicators / random-sampled indicators. |
-| `--use_simple_audit` | Enable simplified audit mode (script-dependent). |
+| `--direct_k` / `--random_k` | Test-time indicator-pool retrieval sizes: `direct_k` is the number of RAG-retrieved indicators, while `random_k` is the number of randomly sampled indicators. |
+| `--use_simple_audit` | Enable simplified audit mode. |
 | `--baseline_only` | Run baseline MAS without audit/pruning. |
 | `--limit` | Run only a subset of the dataset for debugging or controlled experiments. |
 
