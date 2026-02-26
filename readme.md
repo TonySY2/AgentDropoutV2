@@ -94,6 +94,31 @@ pip install -r requirements.txt
 3. **Use your custom pool in test scripts**
    Update `METRIC_POOL_FILE` and `EMBEDDING_CACHE_FILE` in `test/run-*.sh` to point to your newly generated files.
 
+## **🧾 Common Argument Reference**
+
+Most `run_*.py` / `run-*.sh` scripts share these arguments:
+
+| Argument | Description |
+|---|---|
+| `--in_file` / `--out_file` | Input dataset path and output result path. |
+| `--log_file` | Detailed per-worker log file (optional). If omitted, a default `*_full.log` or `*_detailed.log` is auto-generated from `out_file`. |
+| `--selector_url` / `--selector_model` / `--selector_key` | Endpoint, model, and API key for the selector/planner model. |
+| `--reasoning_url` / `--reasoning_model` / `--reasoning_key` | Endpoint, model, and API key for participant reasoning and final answer generation. |
+| `--supervisor_url` / `--supervisor_model` / `--supervisor_key` | Endpoint, model, and API key for the supervisor/auditor model. |
+| `--embedding_url` / `--embedding_model` / `--embedding_key` | Endpoint, model, and API key for embedding service used in retrieval/audit. |
+| `--metric_pool_file` / `--embedding_cache_file` | Indicator pool file and precomputed embedding cache file (`.jsonl`). |
+| `--max_turns` | Maximum number of MAS conversation turns. |
+| `--pass_rate` | Pruning/audit threshold used by supervisor. |
+| `--retries_times` | Total retry budget for one agent output, **including one final decision attempt**. |
+| `--direct_k` / `--random_k` | Number of direct-retrieved indicators / random-sampled indicators. |
+| `--use_simple_audit` | Enable simplified audit mode (script-dependent). |
+| `--baseline_only` | Run baseline MAS without audit/pruning. |
+| `--limit` | Run only a subset of the dataset for debugging or controlled experiments. |
+
+Notes:
+- `####` / `###` are placeholders in scripts. Replace them with your real model names, URLs, and keys.
+- For OpenAI-compatible local endpoints (for example, vLLM), dummy keys such as `EMPTY` are usually acceptable if auth is not enforced.
+
 ## **Acknowledgments**
 
 This code framework is based on [AgentDropout](https://github.com/wangzx1219/AgentDropout).
