@@ -82,7 +82,7 @@ def init_team() -> Tuple[SelectorGroupChat, FinalRefer, Dict[str, str], Supervis
         base_url=args.supervisor_url,
         embedding_model_name=args.embedding_model, 
         embedding_base_url=args.embedding_url,    
-        embedding_api_key="EMPTY",               
+        embedding_api_key=args.embedding_key,             
         supervisor_mode='collect',
         sample_times=3,
         warmup_rounds=2,            
@@ -96,7 +96,7 @@ def init_team() -> Tuple[SelectorGroupChat, FinalRefer, Dict[str, str], Supervis
             name=f"Participant_{i + 1}",
             domain="math500",                    
             model=args.reasoning_model,
-            api_key="EMPTY",
+            api_key=args.reasoning_key,
             base_url=args.reasoning_url,
             supervisor=supervisor,
         ) for i in range(5)
@@ -141,7 +141,7 @@ def init_team() -> Tuple[SelectorGroupChat, FinalRefer, Dict[str, str], Supervis
         name="DecisionMaker",
         domain="math500",
         model=args.reasoning_model,
-        api_key="EMPTY",
+        api_key=args.reasoning_key,
         base_url=args.reasoning_url
     )
     
@@ -205,7 +205,7 @@ async def run_sample(data, out_file, team, decision_maker, role_map, supervisor,
     
     teacher_b_context = json.dumps(data, ensure_ascii=False)
     
-    check_client = AsyncOpenAI(api_key="EMPTY", base_url=args.reasoning_url)
+    check_client = AsyncOpenAI(api_key=args.reasoning_key, base_url=args.reasoning_url)
     
     try:
         current_time = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -340,6 +340,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--reasoning_url', type=str)
     parser.add_argument('--reasoning_model', type=str)
+    parser.add_argument('--reasoning_key', type=str, default="EMPTY")
     
 
     parser.add_argument('--supervisor_url', type=str, default="####") 
@@ -348,6 +349,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--embedding_url', type=str, required=True)
     parser.add_argument('--embedding_model', type=str, required=True)
+    parser.add_argument("--embedding_key", type=str, default="EMPTY")
     
     parser.add_argument('--max_turns', type=int)
     

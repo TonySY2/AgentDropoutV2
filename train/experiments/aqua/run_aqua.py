@@ -40,7 +40,7 @@ def init_team() -> Tuple[SelectorGroupChat, FinalRefer, Dict[str, str], Supervis
         base_url=args.supervisor_url,
         embedding_model_name=args.embedding_model,
         embedding_base_url=args.embedding_url,
-        embedding_api_key="EMPTY",
+        embedding_api_key=args.embedding_key,
         supervisor_mode='collect', 
         sample_times=3,
         elite_strictness_coeff=1.0,
@@ -54,7 +54,7 @@ def init_team() -> Tuple[SelectorGroupChat, FinalRefer, Dict[str, str], Supervis
             name=f"Participant_{i + 1}",
             domain="aqua",
             model=args.reasoning_model,
-            api_key="EMPTY",
+            api_key=args.reasoning_key,
             base_url=args.reasoning_url,
             supervisor=supervisor,
         ) for i in range(5)
@@ -102,7 +102,7 @@ Only select one agent.
         name="DecisionMaker",
         domain="aqua",
         model=args.reasoning_model,
-        api_key="EMPTY",
+        api_key=args.reasoning_key,
         base_url=args.reasoning_url
     )
     
@@ -312,6 +312,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--reasoning_url', type=str, required=True)
     parser.add_argument('--reasoning_model', type=str, required=True)
+    parser.add_argument('--reasoning_key', type=str, default="EMPTY")
     
     parser.add_argument('--supervisor_url', type=str, default="####") 
     parser.add_argument('--supervisor_model', type=str, default="####")
@@ -319,6 +320,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--embedding_url', type=str, required=True)
     parser.add_argument('--embedding_model', type=str, required=True)
+    parser.add_argument("--embedding_key", type=str, default="EMPTY")
     parser.add_argument('--max_turns', type=int, default=6)
     parser.add_argument('--log_file', type=str, help="Path for log file")
     
