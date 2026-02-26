@@ -3,7 +3,7 @@
 This repository anonymously releases the codes and data for the paper -- AgentDropout: Dynamic Agent Elimination for Token-Efficient and High-Performance LLM-Based Multi-Agent Collaboration.
 
 <p align="center">
-  <img src="image/readme/AgentDropoutV2-logo.png" alt="AgentDropoutV2 Logo" width="360">
+  <img src="image/readme/AgentDropoutV2-logo.png" alt="AgentDropoutV2 Logo" width="200">
 </p>
 <p align="center"><strong>AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via Test-Time Rectify-or-Reject Pruning</strong></p>
 
