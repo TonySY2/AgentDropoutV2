@@ -10,7 +10,7 @@ This repository anonymously releases the codes and data for the paper -- AgentDr
 
 ## **📣 News**
 
-- **[27/02/2026] Our code and dataset for DelTA is released!**
+- **[27/02/2026] Our code and dataset for AgentDropoutV2 is released!**
 - **[27/02/2026] Our paper is published on arXiv: [arXiv:2602.23258](https://arxiv.org/abs/2602.23258)!**
 
 
