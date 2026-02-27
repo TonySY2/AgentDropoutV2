@@ -7,12 +7,17 @@ This repository anonymously releases the codes and data for the paper -- AgentDr
 </p>
 <p align="center"><strong>AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via Test-Time Rectify-or-Reject Pruning</strong></p>
 
+## **📣 News**
+
+- **[27/02/2026]** Our paper has been submitted to arXiv: [https://arxiv.org/abs/2602.23258](https://arxiv.org/abs/2602.23258)!
+
 ## **🔗 Quick Links**
 
 - **[About AgentDropoutV2](#about)**
 - **[File Structure](#structure)**
 - **[Requirements](#requirements)**
 - **[Quick Start](#start)**
+- **[Citation](#citation)**
 - **[Acknowledgments](#Acknowledgments)**
 
 ## **🛡️ About AgentDropoutV2**<a name="about"></a>
@@ -121,6 +126,23 @@ Core experiment files in both `train` and `test` sections use the following argu
 Notes:
 - `####` / `###` are placeholders in scripts. Replace them with your real model names, URLs, and keys.
 - For OpenAI-compatible local endpoints (for example, vLLM), dummy keys such as `EMPTY` are usually acceptable if auth is not enforced.
+
+## **📌 Citation**<a name="citation"></a>
+
+If you find this work useful, please cite:
+
+```bibtex
+@misc{wang2026agentdropoutv2,
+  title={AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via Test-Time Rectify-or-Reject Pruning},
+  author={Yutong Wang and Siyuan Xiong and Xuebo Liu and Wenkang Zhou and Liang Ding and Miao Zhang and Min Zhang},
+  year={2026},
+  eprint={2602.23258},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI},
+  url={https://arxiv.org/abs/2602.23258},
+  doi={10.48550/arXiv.2602.23258}
+}
+```
 
 ## **Acknowledgments**
 
