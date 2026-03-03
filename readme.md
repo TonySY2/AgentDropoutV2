@@ -11,13 +11,13 @@ This repository anonymously releases the codes and data for the paper -- AgentDr
 ## **📣 News**
 
 - **[27/02/2026] Our code and dataset for AgentDropoutV2 is released!**
+- **[27/02/2026] Indicator pool dataset is available on Hugging Face: [TonySY2/AgentDropoutV2-Indicator-Pool](https://huggingface.co/datasets/TonySY2/AgentDropoutV2-Indicator-Pool)**
 - **[27/02/2026] Our paper is published on arXiv: [arXiv:2602.23258](https://arxiv.org/abs/2602.23258)!**
 
 
 ## **🔗 Quick Links**
 
 - **[About AgentDropoutV2](#about)**
-- **[Dataset](#dataset)**
 - **[File Structure](#structure)**
 - **[Requirements](#requirements)**
 - **[Quick Start](#start)**
@@ -39,10 +39,6 @@ It acts as an active firewall during MAS execution:
   <img src="image/readme/main-picture.png" alt="Main Picture">
 </p>
 <p align="center"><strong>The Framework of AgentDropout</strong></p>
-
-## **📦 Dataset**<a name="dataset"></a>
-
-- Failure-Driven Indicator Pool (Hugging Face): [TonySY2/AgentDropoutV2-Indicator-Pool](https://huggingface.co/datasets/TonySY2/AgentDropoutV2-Indicator-Pool)
 
 ## **📜 File Structure**<a name="structure"></a>
 
