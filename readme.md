@@ -10,9 +10,10 @@ This repository anonymously releases the codes and data for the paper -- AgentDr
 
 ## **📣 News**
 
+- **[03/03/2026] Indicator pool dataset is available on Hugging Face: [TonySY2/AgentDropoutV2-Indicator-Pool](https://huggingface.co/datasets/TonySY2/AgentDropoutV2-Indicator-Pool)**
 - **[27/02/2026] Our code and dataset for AgentDropoutV2 is released!**
-- **[27/02/2026] Indicator pool dataset is available on Hugging Face: [TonySY2/AgentDropoutV2-Indicator-Pool](https://huggingface.co/datasets/TonySY2/AgentDropoutV2-Indicator-Pool)**
 - **[27/02/2026] Our paper is published on arXiv: [arXiv:2602.23258](https://arxiv.org/abs/2602.23258)!**
+
 
 
 ## **🔗 Quick Links**
