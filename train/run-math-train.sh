@@ -1,71 +1,26 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
+cd "$(dirname "$0")"
 
-reasoning_api_list=(
-    ####
-)
+mkdir -p "$(dirname "${OUTPUT_FILE:-results-math/public_train_math.json}")"
+mkdir -p "$(dirname "${LOG_FILE:-results-math/public_train_math.log}")"
 
-
-
-embedding_api_list=(
-    ####
-)
-
-node_num=${#reasoning_api_list[@]}
-
-
-output_dir=results-math/debug
-tmp_dir=${output_dir}/tmp_math
-log_dir=${output_dir}/logs
-result_dir=${output_dir}/results
-
-mkdir -p ${output_dir}
-mkdir -p ${tmp_dir}
-mkdir -p ${log_dir}
-mkdir -p ${result_dir}
-
-
-python -u get_tasks.py \
-    --in_file project_datasets/MATH/processed_math/train.jsonl \
-    --out_dir ${result_dir} \
-    --node_num ${node_num} \
-    --tmp_dir ${tmp_dir}
-
-
-for ((i=0; i<$node_num; i++)); do
-    LOG_FILE="${log_dir}/node_${i}_full.log"
-
-    SCRIPT_NAME="experiments/math/run_math.py" 
-    
-    nohup python -u ${SCRIPT_NAME} \
-        --in_file ${tmp_dir}/part_${i}.jsonl \
-        --out_file ${result_dir}/part_${i}.json \
-        --log_file ${LOG_FILE} \
-        --selector_url "###" \
-        --selector_model "gpt-4.1-mini" \
-        --selector_key "####" \
-        --reasoning_url ${reasoning_api_list[$i]} \
-        --reasoning_model "####" \
-        --reasoning_key "####" \
-        --supervisor_url "###" \
-        --supervisor_model "gpt-4o" \
-        --supervisor_key "####" \
-        --embedding_url ${embedding_api_list[$i]} \
-        --embedding_model "####" \
-        --embedding_key "####" \
-        --max_turns 7 \
-        --limit 2000 \
-        > ${log_dir}/node_${i}.log 2>&1 & disown
-
-
-    PID=$!
-    
-    echo "  - ✅ Success! Worker for node ${i} started."
-    echo "  - Process ID (PID): ${PID}"
-    echo "  - Stdout Log: ${log_dir}/node_${i}.log"
-    echo "  - Detailed Log: ${LOG_FILE}"
-    echo "----------------------------------------"
-done
-
-echo "[+] All workers have been launched."
-echo "👉 Monitor logs: tail -f ${log_dir}/node_0_full.log"
+exec "${PYTHON:-python}" -u experiments/math/run_math.py \
+  --in_file "${INPUT_FILE:-project_datasets/MATH/processed_math/train.jsonl}" \
+  --out_file "${OUTPUT_FILE:-results-math/public_train_math.json}" \
+  --log_file "${LOG_FILE:-results-math/public_train_math.log}" \
+  --selector_url "${SELECTOR_URL:?Set SELECTOR_URL}" \
+  --selector_model "${SELECTOR_MODEL:?Set SELECTOR_MODEL}" \
+  --selector_key "${SELECTOR_KEY:-EMPTY}" \
+  --reasoning_url "${REASONING_URL:?Set REASONING_URL}" \
+  --reasoning_model "${REASONING_MODEL:?Set REASONING_MODEL}" \
+  --reasoning_key "${REASONING_KEY:-EMPTY}" \
+  --supervisor_url "${SUPERVISOR_URL:?Set SUPERVISOR_URL}" \
+  --supervisor_model "${SUPERVISOR_MODEL:?Set SUPERVISOR_MODEL}" \
+  --supervisor_key "${SUPERVISOR_KEY:-EMPTY}" \
+  --embedding_url "${EMBEDDING_URL:?Set EMBEDDING_URL}" \
+  --embedding_model "${EMBEDDING_MODEL:?Set EMBEDDING_MODEL}" \
+  --embedding_key "${EMBEDDING_KEY:-EMPTY}" \
+  --max_turns "${MAX_TURNS:-7}" \
+  --limit "${LIMIT:-2000}"

@@ -343,9 +343,9 @@ if __name__ == '__main__':
     parser.add_argument('--reasoning_key', type=str, default="EMPTY")
     
 
-    parser.add_argument('--supervisor_url', type=str, default="####") 
-    parser.add_argument('--supervisor_model', type=str, default="####")
-    parser.add_argument('--supervisor_key', type=str, default="####")
+    parser.add_argument('--supervisor_url', type=str)
+    parser.add_argument('--supervisor_model', type=str)
+    parser.add_argument('--supervisor_key', type=str, default="EMPTY")
     
     parser.add_argument('--embedding_url', type=str, required=True)
     parser.add_argument('--embedding_model', type=str, required=True)

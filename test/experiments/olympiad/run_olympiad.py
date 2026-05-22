@@ -128,6 +128,11 @@ def init_team(preloaded_metrics, preloaded_embeddings) -> Tuple[SelectorGroupCha
         retrieve_p=args.retrieve_p,
         select_q=args.select_q,
         random_k=args.random_k,
+        random_k_min=args.random_k_min,
+        random_k_max=args.random_k_max,
+        retrieval_mode=args.retrieval_mode,
+        exact_select_q=args.exact_select_q,
+        batch_audit_metrics=args.batch_audit_metrics,
     )
 
     agent_resgistry = AgentRegistry()
@@ -435,6 +440,11 @@ if __name__ == '__main__':
     parser.add_argument("--direct_k", type=int, default=5)
     
     parser.add_argument("--random_k", type=int, default=0)
+    parser.add_argument("--random_k_min", type=int, default=0)
+    parser.add_argument("--random_k_max", type=int, default=0)
+    parser.add_argument("--retrieval_mode", choices=["direct", "rerank", "random"], default="direct")
+    parser.add_argument("--exact_select_q", action="store_true")
+    parser.add_argument("--batch_audit_metrics", action="store_true")
     parser.add_argument('--retries_times', type=int, default=3)
 
     args = parser.parse_args()

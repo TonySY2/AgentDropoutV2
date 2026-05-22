@@ -1,152 +1,184 @@
 # AgentDropoutV2
 
-This repository anonymously releases the codes and data for the paper -- AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via Test-Time Rectify-or-Reject Pruning.
+This repository anonymously releases code, data, and reproducibility materials
+for **AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via
+Test-Time Rectify-or-Reject Pruning**.
 
 <p align="center">
   <img src="image/readme/AgentDropoutV2-logo.png" alt="AgentDropoutV2 Logo" width="200">
 </p>
-<p align="center"><strong>AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via Test-Time Rectify-or-Reject Pruning</strong></p>
 
+## News
 
-## **📣 News**
+- **2026-05-22**: Release configuration matrix refreshed for the current paper tables. `simple audit` is kept only as a legacy low-level switch and is not exposed as a paper-facing method preset.
+- **2026-03-03**: Indicator pool dataset is available on Hugging Face: [TonySY2/AgentDropoutV2-Indicator-Pool](https://huggingface.co/datasets/TonySY2/AgentDropoutV2-Indicator-Pool).
+- **2026-02-27**: Initial code and dataset release.
+- **2026-02-27**: Paper published on arXiv: [arXiv:2602.23258](https://arxiv.org/abs/2602.23258).
 
-- **[03/03/2026] Indicator pool dataset is available on Hugging Face: [TonySY2/AgentDropoutV2-Indicator-Pool](https://huggingface.co/datasets/TonySY2/AgentDropoutV2-Indicator-Pool)**
-- **[27/02/2026] Our code and dataset for AgentDropoutV2 is released!**
-- **[27/02/2026] Our paper is published on arXiv: [arXiv:2602.23258](https://arxiv.org/abs/2602.23258)!**
+## Overview
 
+AgentDropoutV2 is a test-time framework for improving information flow in
+multi-agent systems without retraining the base agents. During MAS execution it:
 
-
-## **🔗 Quick Links**
-
-- **[About AgentDropoutV2](#about)**
-- **[File Structure](#structure)**
-- **[Requirements](#requirements)**
-- **[Quick Start](#start)**
-- **[Citation](#citation)**
-- **[Acknowledgments](#Acknowledgments)**
-
-## **🛡️ About AgentDropoutV2**<a name="about"></a>
-
-**AgentDropoutV2** is a test-time framework designed to dynamically optimize information flow in Multi-Agent Systems (MAS) without expensive retraining. 
-
-It acts as an active firewall during MAS execution:
-1.  **Intercept**: It intercepts agent outputs before they are broadcast.
-2.  **Rectify**: A retrieval-augmented rectifier scrutinizes the output using a **Failure-Driven Indicator Pool** (constructed from historical error patterns). It provides targeted feedback for iterative correction.
-3.  **Reject**: If the output remains flawed after maximum retries, it is pruned to prevent error propagation.
-4.  **Fallback**: A safeguard mechanism preserves structural integrity if too many agents are pruned.
-
+1. intercepts each agent output before broadcast,
+2. retrieves failure-driven indicators from an offline pool,
+3. audits the output and provides targeted rectification feedback,
+4. rejects unreleased outputs that still fail the audit threshold,
+5. falls back to the original MAS path when pruning would collapse the team.
 
 <p align="center">
-  <img src="image/readme/main-picture.png" alt="Main Picture">
+  <img src="image/readme/main-picture.png" alt="AgentDropoutV2 framework">
 </p>
-<p align="center"><strong>The Framework of AgentDropout</strong></p>
 
-## **📜 File Structure**<a name="structure"></a>
+## Repository Layout
 
-The repository is organized into two main components: `train` (for offline indicator pool construction) and `test` (for online inference).
+```text
+configs/release_experiments.json  Paper-facing benchmarks, pools, and method presets.
+docs/experiment_matrix.md          How to run the current main and ablation configurations.
+docs/release_results.md            Current Table 1 / Table 2 / Table 3 result snapshot.
+test/                             Test-time inference, benchmark loaders, and public launcher.
+train/                            Training-time collection and indicator-pool construction.
+image/readme/                     README figures.
+```
 
+## Requirements
 
-
-## **🛠️ Requirements**<a name="requirements"></a>
-
-This project can be reproduced with a single Python environment:
+Use Python 3.10. The full historical environment is pinned in
+`requirements.txt`; for a fresh setup:
 
 ```bash
-conda create -n myenv python=3.10.18
-conda activate myenv
+conda create -n agentdropoutv2 python=3.10
+conda activate agentdropoutv2
 pip install -r requirements.txt
 ```
 
+The runners use OpenAI-compatible chat and embedding endpoints. Local vLLM
+servers can use `EMPTY` keys when authentication is disabled.
 
-## **🚀 Quick Start**<a name="start"></a>
+## Quick Start
 
-### **1. Test-Time Inference (Main Workflow)**
+Set endpoint variables:
 
-> **Before running this part**: many `*.sh` and `*.py` files contain configurable fields such as model name, API URL/base URL, API key, and data/output paths (often marked as `####` / `###`). Please fill them based on your setup first.
+```bash
+export SELECTOR_URL="http://host:port/v1"
+export SELECTOR_MODEL="selector-model-name"
+export REASONING_URL="http://host:port/v1"
+export REASONING_MODEL="reasoning-model-name"
+export SUPERVISOR_URL="http://host:port/v1"
+export SUPERVISOR_MODEL="auditor-model-name"
+export EMBEDDING_URL="http://host:port/v1"
+export EMBEDDING_MODEL="embedding-model-name"
 
-1. **Generate trigger embeddings for the indicator pool**
-   ```bash
-   cd test/metrics_pool/two_pool
-   python embed_metrics-trigger.py
-   ```
-   This step generates the `.jsonl` embedding cache required at test time.
+export SELECTOR_KEY="EMPTY"
+export REASONING_KEY="EMPTY"
+export SUPERVISOR_KEY="EMPTY"
+export EMBEDDING_KEY="EMPTY"
+```
 
-2. **Run evaluation scripts to produce result files**
-   ```bash
-   cd ../../
-   bash run-xxx.sh
-   ```
-   Replace `run-xxx.sh` with your target benchmark script (for example: `run-math500.sh`, `run-aqua.sh`, `run-livecode.sh`).
+List available benchmarks and method presets:
 
-3. **Compute final accuracy from result file**
-   ```bash
-   python calc_accuracy.py
-   ```
-   Set `FILE_PATH` in `calc_accuracy.py` to your generated result file path before running.
+```bash
+python test/run_release_experiment.py --list
+```
 
-### **2. Training & Build Your Own Indicator Pool (Optional)**
+Run the current math main configuration on a small subset:
 
-> **Before running this part**: scripts in `train/` also require you to fill model, URL/base URL, API key, and local path settings according to your environment.
+```bash
+python test/run_release_experiment.py \
+  --benchmark gsm8k \
+  --method adv2_math_main \
+  --model-profile math_8b \
+  --limit 2
+```
 
-1. **Run training-time scripts to get raw result files**
-   ```bash
-   cd train
-   bash run-xxx.sh
-   ```
-   Replace `run-xxx.sh` with your selected training script (for example: `run-math-train.sh`, `run-aqua-train.sh`).
+The old per-benchmark shell scripts are now thin wrappers over the same launcher:
 
-2. **Extract, deduplicate, and build trigger embeddings**
-   ```bash
-   python Extraction-deduplication-embedding.py
-   ```
-   This script completes:
-   - extraction of raw indicators from training outputs,
-   - deduplication into a cleaner metric pool,
-   - embedding generation for `trigger_condition` (used by test-time retrieval).
+```bash
+bash test/run-gsm8k.sh --method adv2_math_main --model-profile math_8b --limit 2
+```
 
-3. **Use your custom pool in test scripts**
-   Update `METRIC_POOL_FILE` and `EMBEDDING_CACHE_FILE` in `test/run-*.sh` to point to your newly generated files.
+For the 14B math table, use the same benchmark/method presets with 14B served
+models in the endpoint environment. For the 8B code table, use
+`--method adv2_code_main --model-profile code_8b` and supply the mixed code
+indicator pool through the environment variables described in
+[docs/experiment_matrix.md](docs/experiment_matrix.md).
 
-## **🧾 Common Argument Reference**
+## Current Paper Tables
 
-Core experiment files in both `train` and `test` sections use the following arguments:
+The current release snapshot is in [docs/release_results.md](docs/release_results.md).
+
+- Table 1: 8B math MAS results across Single Agent, Fixed-MAS, Dynamic-MAS,
+  external methods, ADv1, and ADv2.
+- Table 2: 14B math Dynamic-MAS results.
+- Table 3: 8B code results, including CoT, MAD, Fixed-MAS, Dynamic-MAS, external
+  methods, and ADv2.
+- Math ablations: pass threshold, indicator budget, retry count, random retrieval,
+  and pool deduplication controls.
+
+## Indicator Pools
+
+The bundled math pool is small enough for GitHub. Larger MAS/code pools should
+be hosted externally, for example on Hugging Face, and provided at runtime:
+
+```bash
+export AGENTDROPOUT_METRIC_POOL_FILE="/path/to/pool.json"
+export AGENTDROPOUT_EMBEDDING_CACHE_FILE="/path/to/pool_embeddings.jsonl"
+```
+
+To build a custom pool:
+
+```bash
+cd train
+bash run-math-train.sh
+python Extraction-deduplication-embedding.py
+```
+
+The training scripts run a single foreground job and are controlled entirely by
+environment variables. They do not include internal endpoint fan-out or
+background queueing.
+
+## Common Arguments
 
 | Argument | Description |
-|---|---|
-| `--in_file` / `--out_file` | Input dataset path and output result path. |
-| `--log_file` | Detailed per-worker log file (optional). If omitted, a default `*_full.log` or `*_detailed.log` is auto-generated from `out_file`. |
-| `--selector_url` / `--selector_model` / `--selector_key` | Endpoint, model, and API key for the selector/planner model. |
-| `--reasoning_url` / `--reasoning_model` / `--reasoning_key` | Endpoint, model, and API key for participant reasoning and final answer generation. |
-| `--supervisor_url` / `--supervisor_model` / `--supervisor_key` | Endpoint, model, and API key for the supervisor/auditor model. |
-| `--embedding_url` / `--embedding_model` / `--embedding_key` | Endpoint, model, and API key for embedding service used in retrieval/audit. |
-| `--metric_pool_file` / `--embedding_cache_file` | Indicator pool file and precomputed embedding cache file (`.jsonl`). |
-| `--max_turns` | Maximum number of MAS conversation turns. |
-| `--pass_rate` | Pruning/audit threshold used by supervisor. |
-| `--retries_times` | Total retry budget for one agent output, **including one final decision attempt**. |
-| `--direct_k` / `--random_k` | Test-time indicator-pool retrieval sizes: `direct_k` is the number of RAG-retrieved indicators, while `random_k` is the number of randomly sampled indicators. |
-| `--use_simple_audit` | Enable simplified audit mode. |
-| `--baseline_only` | Run baseline MAS without audit/pruning. |
-| `--limit` | Run only a subset of the dataset for debugging or controlled experiments. |
+| --- | --- |
+| `--in_file` / `--out_file` | Input dataset and output result path. |
+| `--log_file` | Detailed run log path. |
+| `--selector_url`, `--selector_model`, `--selector_key` | Selector/planner endpoint. |
+| `--reasoning_url`, `--reasoning_model`, `--reasoning_key` | Participant and final-answer endpoint. |
+| `--supervisor_url`, `--supervisor_model`, `--supervisor_key` | Auditor endpoint. |
+| `--embedding_url`, `--embedding_model`, `--embedding_key` | Embedding endpoint for retrieval. |
+| `--metric_pool_file`, `--embedding_cache_file` | Indicator pool and precomputed embedding cache. |
+| `--baseline_only` | Run the MAS baseline without audit/pruning. |
+| `--retrieval_mode` | `direct`, `rerank`, or `random`. |
+| `--retrieve_p`, `--select_q` | Rerank path: retrieve top-P candidates, then select up to Q indicators. |
+| `--direct_k` | Direct retrieval top-K. |
+| `--random_k_min`, `--random_k_max` | Random indicator-count range for retrieval-control ablations. |
+| `--batch_audit_metrics` | Audit all selected indicators in one batched auditor call. |
+| `--pass_rate` | Fraction of selected indicators that must pass. |
+| `--retries_times` | Rectification retry budget for one agent output. |
+| `--limit` | Optional subset size for smoke tests. |
 
-Notes:
-- `####` / `###` are placeholders in scripts. Replace them with your real model names, URLs, and keys.
-- For OpenAI-compatible local endpoints (for example, vLLM), dummy keys such as `EMPTY` are usually acceptable if auth is not enforced.
+## Privacy
 
+The public release should not contain private endpoint URLs, API keys, personal
+paths, server IPs, queue manifests, or internal acceleration settings. The
+launcher reads secrets from environment variables and masks key values when it
+prints commands.
 
-## **📝 Citation**<a name="citation"></a>
-If you find this repo useful, please cite our paper as:
-```
+## Citation
+
+```bibtex
 @misc{wang2026agentdropoutv2optimizinginformationflow,
-      title={AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via Test-Time Rectify-or-Reject Pruning}, 
+      title={AgentDropoutV2: Optimizing Information Flow in Multi-Agent Systems via Test-Time Rectify-or-Reject Pruning},
       author={Yutong Wang and Siyuan Xiong and Xuebo Liu and Wenkang Zhou and Liang Ding and Miao Zhang and Min Zhang},
       year={2026},
       eprint={2602.23258},
       archivePrefix={arXiv},
       primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2602.23258}, 
+      url={https://arxiv.org/abs/2602.23258},
 }
 ```
 
-## **Acknowledgments**
+## Acknowledgments
 
-This code framework is based on [AgentDropout](https://github.com/wangzx1219/AgentDropout).
+This codebase builds on [AgentDropout](https://github.com/wangzx1219/AgentDropout).

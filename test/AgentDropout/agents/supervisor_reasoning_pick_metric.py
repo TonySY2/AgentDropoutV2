@@ -2,10 +2,9 @@
 
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_agentchat.messages import TextMessage
-from typing import Dict
+from typing import Any, Dict, List
 from autogen_core.models import UserMessage, ModelInfo
 import re
-from typing import List
 from openai import AsyncOpenAI
 import json
 from openai import OpenAI
@@ -240,6 +239,60 @@ Agent Output: {agent_output}
 }}
 """
 
+RERANK_TEMPLATE = """[Instruction]
+Select the most relevant indicators for auditing the current agent output.
+You receive candidates from embedding retrieval. Return only indicator names from the candidate list.
+
+Selection rule:
+- Select at most {select_q} indicators.
+- If exact_selection is true, select exactly {select_q} indicators unless fewer candidates are available.
+- Prefer indicators that can expose concrete fatal reasoning or coding errors in the agent output.
+
+Context:
+Task: {task}
+Agent output: {agent_output}
+exact_selection: {exact_selection}
+
+Candidates:
+{candidates}
+
+JSON output only:
+{{
+  "selected_names": ["indicator_name"]
+}}
+"""
+
+BATCH_METRIC_TEMPLATE = """
+You are auditing one agent output against multiple indicators in a single pass.
+For each indicator, decide whether it exposes a fatal flaw in the output.
+
+Audit protocol:
+1. Assume the output is valid unless there is concrete evidence of a fatal flaw.
+2. If an indicator is irrelevant to this task/output, mark it as not flawed.
+3. A flaw must be actionable and must change the final answer, runtime behavior, or core conclusion.
+
+Context:
+- Domain: {domain}
+- Task: {task}
+- Agent Role: {role}
+- Agent Output: {agent_output}
+
+Indicators:
+{indicator_block}
+
+Return JSON only as an array. Use one object per indicator:
+[
+  {{
+    "metric": "indicator_name",
+    "evidence_quote": "verbatim quote, or N/A",
+    "analysis": "concise reason, or N/A",
+    "suggestion": "specific correction, or N/A",
+    "impact_assessment": "YES/NO and brief reason",
+    "is_flawed": false
+  }}
+]
+"""
+
 class Supervisor():
     def __init__(
         self,
@@ -249,8 +302,19 @@ class Supervisor():
         domain: str,  
         
  
-        direct_k: int = 5,                 
-        random_k: int = 0,                 
+        direct_k: int = 5,
+        random_k: int = 0,
+        random_k_min: int = 0,
+        random_k_max: int = 0,
+        retrieval_mode: str = "direct",
+        retrieve_p: int = 20,
+        select_q: int | None = None,
+        exact_select_q: bool = False,
+        batch_audit_metrics: bool = False,
+        metrics_retrieve_k: int | None = None,
+        use_llm_rerank: bool | None = None,
+        max_metrics_count: int | None = None,
+        force_direct_search: bool = False,
         use_simple_audit: int = 0,         
         
         sample_times: int = 3,
@@ -267,6 +331,7 @@ class Supervisor():
 
         preloaded_metrics: List[Dict] = None,
         preloaded_embeddings: np.ndarray = None,
+        **_ignored_kwargs: Any,
     ):
         self.domain = domain.lower()
         self._model_client = AsyncOpenAI(api_key=api_key, base_url=base_url)
@@ -278,8 +343,27 @@ class Supervisor():
         self.reflection_records = []
         
 
-        self.direct_k = direct_k
-        self.random_k = random_k
+        self.direct_k = max(1, direct_k)
+        self.random_k = max(0, random_k)
+        self.random_k_min = max(0, random_k_min)
+        self.random_k_max = max(0, random_k_max)
+        if metrics_retrieve_k is not None:
+            retrieve_p = metrics_retrieve_k
+        if max_metrics_count is not None and select_q is None:
+            select_q = max_metrics_count
+        if use_llm_rerank is True and not force_direct_search:
+            retrieval_mode = "rerank"
+        if force_direct_search:
+            retrieval_mode = "direct"
+        self.retrieval_mode = (retrieval_mode or "direct").lower()
+        if self.random_k > 0 or self.random_k_max > 0:
+            self.retrieval_mode = "random"
+        if self.retrieval_mode not in {"direct", "rerank", "random"}:
+            raise ValueError(f"Unsupported retrieval_mode: {retrieval_mode}")
+        self.retrieve_p = max(1, retrieve_p)
+        self.select_q = max(1, select_q if select_q is not None else self.direct_k)
+        self.exact_select_q = bool(exact_select_q)
+        self.batch_audit_metrics = bool(batch_audit_metrics)
         self.use_simple_audit = use_simple_audit
         
         if self.use_simple_audit > 0:
@@ -352,12 +436,24 @@ class Supervisor():
             
         print(f"[Supervisor] Index ready. Shape: {self.detailed_definitions_embeddings.shape}")
 
-    def _safe_parse_json(self, raw_content: str, source_stage: str) -> Dict:
-    
+    def _safe_parse_json_any(self, raw_content: str, source_stage: str) -> Any:
         try:
             json_match = re.search(r'\{.*\}', raw_content, re.DOTALL)
             candidate_str = json_match.group(0) if json_match else raw_content
+            if "[" in raw_content and "]" in raw_content:
+                list_match = re.search(r'\[.*\]', raw_content, re.DOTALL)
+                if list_match and (not json_match or list_match.start() <= json_match.start()):
+                    candidate_str = list_match.group(0)
             parsed_data = repair_json(candidate_str, return_objects=True)
+            return parsed_data
+        except Exception as e:
+            print(f"\n[JSON Parse Error in {source_stage}]: {e}")
+            raise e
+
+    def _safe_parse_json(self, raw_content: str, source_stage: str) -> Dict:
+
+        try:
+            parsed_data = self._safe_parse_json_any(raw_content, source_stage)
             if isinstance(parsed_data, list):
                 if len(parsed_data) > 0: parsed_data = parsed_data[0]
                 else: raise ValueError("Parsed JSON is an empty list.")
@@ -368,14 +464,113 @@ class Supervisor():
             print(f"\n[JSON Parse Error in {source_stage}]: {e}")
             raise e
 
+    def _is_truthy(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"true", "yes", "y", "1", "flawed"}
+        return bool(value)
+
+    def _judgement_from_finding(self, metric_name: str, finding: Dict[str, Any]) -> Dict[str, Any]:
+        evidence = finding.get("evidence_quote", "N/A")
+        analysis = finding.get("analysis", "N/A")
+        suggestion = finding.get("suggestion", "N/A")
+        impact = finding.get("impact_assessment", "NO")
+        raw_flawed = self._is_truthy(finding.get("is_flawed", False))
+
+        is_suggestion_valid = str(suggestion).lower() not in ["n/a", "none", "no suggestion", "", "null"]
+        is_impact_significant = "yes" in str(impact).lower()
+        final_verdict_bool = raw_flawed and is_suggestion_valid and is_impact_significant
+        verdict_str = "flawed" if final_verdict_bool else "correct"
+
+        return {
+            "metric": metric_name,
+            "verdict": verdict_str,
+            "evidence_quote": evidence,
+            "reasoning": analysis,
+            "suggestion": suggestion,
+            "impact": impact,
+            "is_triggered": True,
+        }
+
+    def _format_metric_candidates(self, metrics: List[Dict], include_risk: bool = True) -> str:
+        lines = []
+        for idx, metric in enumerate(metrics, start=1):
+            evaluator_prompt = metric.get("evaluator_prompt", {})
+            trigger = evaluator_prompt.get("trigger_condition", "N/A")
+            risk = evaluator_prompt.get("risk_alert", "")
+            definition = metric.get("detailed_definition", "")
+            item = [
+                f"{idx}. name: {metric.get('name', '')}",
+                f"   definition: {definition}",
+                f"   trigger: {trigger}",
+            ]
+            if include_risk and risk:
+                item.append(f"   risk: {risk}")
+            lines.append("\n".join(item))
+        return "\n\n".join(lines)
+
+    def _top_metric_candidates(self, query_emb: np.ndarray, k: int) -> List[Dict]:
+        if self.detailed_definitions_embeddings.size == 0:
+            return []
+        similarities = np.dot(self.detailed_definitions_embeddings, query_emb)
+        top_k_indices = np.argsort(similarities)[-min(k, len(self.metrics)):][::-1]
+        return [self.metrics[idx] for idx in top_k_indices]
+
+    async def _rerank_metrics(self, task: str, output: str, candidates: List[Dict]) -> List[Dict]:
+        if not candidates:
+            return []
+        fallback = candidates[: min(self.select_q, len(candidates))]
+        prompt = RERANK_TEMPLATE.format(
+            task=task,
+            agent_output=output,
+            select_q=self.select_q,
+            exact_selection=str(self.exact_select_q).lower(),
+            candidates=self._format_metric_candidates(candidates, include_risk=False),
+        )
+        try:
+            completion = await self._model_client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=1000,
+            )
+            parsed = self._safe_parse_json(completion.choices[0].message.content.strip(), "Metric-Rerank")
+            selected_names = parsed.get("selected_names", [])
+            if not isinstance(selected_names, list):
+                return fallback
+            by_name = {metric.get("name"): metric for metric in candidates}
+            selected = []
+            for name in selected_names:
+                metric = by_name.get(str(name))
+                if metric and metric not in selected:
+                    selected.append(metric)
+                if len(selected) >= self.select_q:
+                    break
+            if self.exact_select_q and len(selected) < min(self.select_q, len(candidates)):
+                for metric in candidates:
+                    if metric not in selected:
+                        selected.append(metric)
+                    if len(selected) >= min(self.select_q, len(candidates)):
+                        break
+            return selected or fallback
+        except Exception as e:
+            print(f"[Supervisor Warning] Rerank failed, using top candidates: {e}")
+            return fallback
+
     async def _match_metrics(self, task: str, output: str, metric_names=None) -> List[Dict]:
         if metric_names is not None:
             return [m for m in self.metrics if m['name'] in metric_names]
 
-     
-        if self.random_k > 0:
-            print(f"[Supervisor] Mode: Random Selection (k={self.random_k})")
-            k = min(self.random_k, len(self.metrics))
+        if self.retrieval_mode == "random":
+            if self.random_k_max > 0:
+                low = self.random_k_min if self.random_k_min > 0 else 1
+                high = max(low, self.random_k_max)
+                k = random.randint(low, high)
+            else:
+                k = self.random_k
+            print(f"[Supervisor] Mode: Random Selection (k={k})")
+            k = min(k, len(self.metrics))
             return random.sample(self.metrics, k)
 
         summary_resp = await self._model_client.chat.completions.create(
@@ -398,12 +593,13 @@ class Supervisor():
 
         emb_resp = self.embedding_client.embeddings.create(model=self.embedding_model, input=[query_text])
         query_emb = np.array(emb_resp.data[0].embedding, dtype=np.float32)
-        similarities = np.dot(self.detailed_definitions_embeddings, query_emb)
-        
- 
+        if self.retrieval_mode == "rerank":
+            print(f"[Supervisor] Mode: Rerank Search (Top-{self.retrieve_p} -> <=Top-{self.select_q}).")
+            candidates = self._top_metric_candidates(query_emb, self.retrieve_p)
+            return await self._rerank_metrics(task, output, candidates)
+
         print(f"[Supervisor] Mode: Direct Search (Top-{self.direct_k}).")
-        top_k_indices = np.argsort(similarities)[-self.direct_k:][::-1]
-        return [self.metrics[idx] for idx in top_k_indices]
+        return self._top_metric_candidates(query_emb, self.direct_k)
    
     async def _calc_score(self, task, message: TextMessage | dict, role: str = "Unknown", metrics=None) -> List[Dict]: 
         judgements = []
@@ -413,9 +609,11 @@ class Supervisor():
             matched_metrics = metrics
         else:
             matched_metrics = await self._match_metrics(task, message_content)
+
+        if self.batch_audit_metrics and len(matched_metrics) > 1:
+            return await self._calc_score_batch(task, message_content, role, matched_metrics)
         
-     
-        if self.random_k > 0:
+        if self.retrieval_mode == "random":
             if self.domain == "code": target_template = METRIC_TEMPLATE_RANDOM_CODE
             else: target_template = METRIC_TEMPLATE_RANDOM_MATH
         elif self.domain == "code":
@@ -447,34 +645,7 @@ class Supervisor():
                     )
                     res_raw = completion.choices[0].message.content.strip()
                     finding = self._safe_parse_json(res_raw, source_stage=f"Audit-{metric['name']}")
-                    
-            
-                    evidence = finding.get("evidence_quote", "N/A")
-                    analysis = finding.get("analysis", "N/A")
-                    suggestion = finding.get("suggestion", "N/A")
-                    impact = finding.get("impact_assessment", "NO")
-                    raw_flawed = finding.get("is_flawed", False)
-
-            
-                    is_suggestion_valid = str(suggestion).lower() not in ["n/a", "none", "no suggestion", "", "null"]
-                    is_impact_significant = "yes" in str(impact).lower()
-                    
-                    if raw_flawed:
-                        final_verdict_bool = is_suggestion_valid and is_impact_significant
-                    else:
-                        final_verdict_bool = False
-
-                    verdict_str = 'flawed' if final_verdict_bool else 'correct'
-                    
-                    judgements.append({
-                        'metric': metric['name'],
-                        'verdict': verdict_str,
-                        'evidence_quote': evidence,
-                        'reasoning': analysis,         
-                        'suggestion': suggestion,      
-                        'impact': impact,              
-                        'is_triggered': True 
-                    })
+                    judgements.append(self._judgement_from_finding(metric['name'], finding))
                     break 
 
                 except Exception as e:
@@ -482,6 +653,68 @@ class Supervisor():
                         print(f"[Audit Fail] Metric '{metric['name']}' failed 5 times.")
         
         return judgements
+
+    async def _calc_score_batch(
+        self,
+        task: str,
+        message_content: str,
+        role: str,
+        matched_metrics: List[Dict],
+    ) -> List[Dict]:
+        indicator_block = self._format_metric_candidates(matched_metrics, include_risk=True)
+        prompt = BATCH_METRIC_TEMPLATE.format(
+            domain=self.domain,
+            task=task,
+            role=role,
+            agent_output=message_content,
+            indicator_block=indicator_block,
+        )
+
+        for attempt in range(5):
+            try:
+                completion = await self._model_client.chat.completions.create(
+                    model=self.model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0,
+                    max_tokens=3000,
+                )
+                parsed = self._safe_parse_json_any(
+                    completion.choices[0].message.content.strip(),
+                    "Batch-Audit",
+                )
+                if isinstance(parsed, dict):
+                    parsed_items = parsed.get("judgements") or parsed.get("results") or []
+                else:
+                    parsed_items = parsed
+                if not isinstance(parsed_items, list):
+                    raise ValueError("Batch audit response is not a list.")
+
+                by_metric = {}
+                for item in parsed_items:
+                    if not isinstance(item, dict):
+                        continue
+                    metric_name = item.get("metric") or item.get("metric_name") or item.get("name")
+                    if metric_name:
+                        by_metric[str(metric_name)] = item
+
+                judgements = []
+                for metric in matched_metrics:
+                    metric_name = metric["name"]
+                    finding = by_metric.get(metric_name)
+                    if finding is None:
+                        finding = {
+                            "evidence_quote": "N/A",
+                            "analysis": "No issue reported for this indicator.",
+                            "suggestion": "N/A",
+                            "impact_assessment": "NO",
+                            "is_flawed": False,
+                        }
+                    judgements.append(self._judgement_from_finding(metric_name, finding))
+                return judgements
+            except Exception as e:
+                if attempt == 4:
+                    print(f"[Audit Fail] Batch audit failed 5 times: {e}")
+        return []
     
   
     def update_scoreboard_with_results(self, message: TextMessage, judgements: list[dict]):

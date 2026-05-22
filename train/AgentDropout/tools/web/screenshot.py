@@ -6,6 +6,7 @@ Ref: https://github.com/abi/screenshot-to-code/blob/main/backend/routes/screensh
 
 
 import base64
+import os
 from fastapi import APIRouter
 from pydantic import BaseModel
 import httpx
@@ -18,7 +19,9 @@ def bytes_to_data_url(image_bytes: bytes, mime_type: str) -> str:
 
 
 async def capture_screenshot(target_url, api_key, device="desktop") -> bytes:
-    api_base_url = "####"
+    api_base_url = os.environ.get("SCREENSHOT_API_URL")
+    if not api_base_url:
+        raise RuntimeError("Set SCREENSHOT_API_URL before using screenshot capture.")
 
     params = {
         "access_key": api_key,
@@ -53,4 +56,3 @@ class ScreenshotRequest(BaseModel):
 
 class ScreenshotResponse(BaseModel):
     url: str
-

@@ -1,0 +1,267 @@
+{
+  "metric_pools": {
+    "math_deduped": {
+      "metric_pool_file": "test/metrics_pool/two_pool/deduped-mixed_metrics_two_pool.json",
+      "embedding_cache_file": "test/metrics_pool/two_pool/deduped-mixed_two_pool-trigger.jsonl",
+      "note": "Small public math indicator pool. Generate the embedding cache before running if it is absent."
+    },
+    "math_nondedup": {
+      "metric_pool_file_env": "AGENTDROPOUT_METRIC_POOL_FILE",
+      "embedding_cache_file_env": "AGENTDROPOUT_EMBEDDING_CACHE_FILE",
+      "note": "Non-deduplicated pool used by the pool-control ablation. Host externally when the full pool is too large for GitHub."
+    },
+    "code_mixed": {
+      "metric_pool_file_env": "AGENTDROPOUT_METRIC_POOL_FILE",
+      "embedding_cache_file_env": "AGENTDROPOUT_EMBEDDING_CACHE_FILE",
+      "note": "Mixed code indicator pool. The full pool can be provided through env vars or a Hugging Face dataset download."
+    }
+  },
+  "benchmarks": {
+    "gsm8k": {
+      "domain": "math",
+      "script": "test/experiments/gsm8k/run_gsm8k.py",
+      "input_file": "test/project_datasets/gsm8k/gsm8k_id.jsonl",
+      "default_pool": "math_deduped",
+      "max_turns": 7
+    },
+    "math500": {
+      "domain": "math",
+      "script": "test/experiments/math500/run_math500.py",
+      "input_file": "test/project_datasets/math500/test_ids.jsonl",
+      "default_pool": "math_deduped",
+      "max_turns": 7
+    },
+    "aqua": {
+      "domain": "math",
+      "script": "test/experiments/aqua/run_aqua.py",
+      "input_file": "test/project_datasets/aqua/aqua_id.jsonl",
+      "default_pool": "math_deduped",
+      "max_turns": 7
+    },
+    "amc23": {
+      "domain": "math",
+      "script": "test/experiments/amc23/run_amc23.py",
+      "input_file": "test/project_datasets/amc23/amc23_data.json",
+      "default_pool": "math_deduped",
+      "max_turns": 7
+    },
+    "aime24": {
+      "domain": "math",
+      "script": "test/experiments/aime24/run_aime24.py",
+      "input_file": "test/project_datasets/aime24/test.jsonl",
+      "default_pool": "math_deduped",
+      "max_turns": 7
+    },
+    "aime25": {
+      "domain": "math",
+      "script": "test/experiments/aime25/run_aime25.py",
+      "input_file": "test/project_datasets/aime25/aime_2025.jsonl",
+      "default_pool": "math_deduped",
+      "max_turns": 7
+    },
+    "olympiad": {
+      "domain": "math",
+      "script": "test/experiments/olympiad/run_olympiad.py",
+      "input_file": "test/project_datasets/olympiad/test.jsonl",
+      "default_pool": "math_deduped",
+      "max_turns": 10
+    },
+    "olymMATH": {
+      "domain": "math",
+      "script": "test/experiments/olymMATH/run_olymMATH.py",
+      "input_file": "test/project_datasets/olymMATH/OlymMATH-EN-EASY.jsonl",
+      "default_pool": "math_deduped",
+      "max_turns": 7
+    },
+    "mbpp": {
+      "domain": "code",
+      "script": "test/experiments/mbpp/run_mbpp.py",
+      "input_file": "test/project_datasets/mbpp-sanitized/mbpp_test.jsonl",
+      "default_pool": "code_mixed",
+      "max_turns": 7
+    },
+    "humaneval": {
+      "domain": "code",
+      "script": "test/experiments/humaneval/run_humaneval.py",
+      "input_file": "test/project_datasets/humaneval/humaneval-py_id.jsonl",
+      "default_pool": "code_mixed",
+      "max_turns": 7
+    },
+    "codecontest": {
+      "domain": "code",
+      "script": "test/experiments/codecontest/run_codecontest.py",
+      "input_file": "test/project_datasets/codecontest/test.jsonl",
+      "default_pool": "code_mixed",
+      "max_turns": 7
+    },
+    "livecode": {
+      "domain": "code",
+      "script": "test/experiments/livecode/run_livecode.py",
+      "input_file_env": "AGENTDROPOUT_LIVECODE_FILE",
+      "default_pool": "code_mixed",
+      "max_turns": 7
+    }
+  },
+  "method_presets": {
+    "autogen_baseline": {
+      "description": "Dynamic-MAS / AutoGen baseline without audit or pruning.",
+      "args": {
+        "baseline_only": true
+      }
+    },
+    "adv2_math_main": {
+      "description": "Main math setting: top20 -> <=top5, batch audit, pass 3/5.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_pass_5of5": {
+      "description": "Pass-threshold ablation: top20 -> <=top5, pass 5/5.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 1.0,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_pass_2of5": {
+      "description": "Pass-threshold ablation: top20 -> <=top5, pass 2/5.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.4,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_top4_pass2of4": {
+      "description": "Indicator-budget ablation: top20 -> <=top4, pass 2/4.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 4,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.5,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_top4_pass3of4": {
+      "description": "Indicator-budget ablation: top20 -> <=top4, pass 3/4.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 4,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.75,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_top3_pass3of3": {
+      "description": "Indicator-budget ablation: top20 -> <=top3, pass 3/3.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 3,
+        "batch_audit_metrics": true,
+        "pass_rate": 1.0,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_iter0": {
+      "description": "Iteration ablation with zero rectification retries.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 0
+      }
+    },
+    "adv2_math_iter2": {
+      "description": "Iteration ablation with two rectification retries.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 2
+      }
+    },
+    "adv2_math_iter4": {
+      "description": "Iteration ablation with four rectification retries.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 4
+      }
+    },
+    "adv2_math_random_1to5": {
+      "description": "Retrieval-control ablation with random 1-5 indicators.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "random",
+        "random_k_min": 1,
+        "random_k_max": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_nondedup_pool": {
+      "description": "Pool-control ablation with the non-deduplicated indicator pool.",
+      "pool": "math_nondedup",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 3
+      }
+    },
+    "adv2_code_main": {
+      "description": "Main code setting: mixed code pool + direct top3, batch audit, pass 3/3.",
+      "pool": "code_mixed",
+      "args": {
+        "retrieval_mode": "direct",
+        "direct_k": 3,
+        "batch_audit_metrics": true,
+        "pass_rate": 1.0,
+        "retries_times": 3
+      }
+    }
+  },
+  "model_profiles": {
+    "math_8b": {
+      "description": "8B math/table-1 style profile. Supply endpoint URLs and exact served model names with environment variables."
+    },
+    "math_14b": {
+      "description": "14B math/table-2 style profile. The command shape is identical to math_8b; only served model names change."
+    },
+    "code_8b": {
+      "description": "8B code/table-3 style profile. Use the code mixed indicator pool."
+    }
+  }
+}

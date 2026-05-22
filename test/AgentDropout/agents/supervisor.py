@@ -8,7 +8,21 @@ from openai import AsyncOpenAI
 
 
 SCORE_PROMPT = {
-####
+    "accuracy": (
+        "Score the factual and task-specific correctness of the agent output on a 1-5 scale.\n"
+        "Task:\n{task}\n\nAgent output:\n{agent_output}\n\n"
+        "Return the score as '<Score> N'."
+    ),
+    "logical_soundness": (
+        "Score whether the agent output follows a coherent and valid reasoning path on a 1-5 scale.\n"
+        "Task:\n{task}\n\nAgent output:\n{agent_output}\n\n"
+        "Return the score as '<Score> N'."
+    ),
+    "impactfulness": (
+        "Score whether the output contributes useful progress toward solving the task on a 1-5 scale.\n"
+        "Task:\n{task}\n\nAgent output:\n{agent_output}\n\n"
+        "Return the score as '<Score> N'."
+    ),
 }
 
 class Supervisor():

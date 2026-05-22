@@ -4,37 +4,23 @@ import json
 import os
 import numpy as np
 import asyncio
+import argparse
 from openai import AsyncOpenAI
 from json_repair import repair_json
-from tqdm.asyncio import tqdm_asyncio
 from typing import List, Dict, Any
 
 
 
 
-INPUT_DATA_FILE = "results/part_0.json"     #Raw result file obtained from training
-OUTPUT_METRICS_FILE = "metrics_pool_deduped.json"       #A refined and non-redundant indicator database
-OUTPUT_EMBEDDING_FILE = "metrics_embeddings_trigger.jsonl"  #Embedding information of the "trigger_condition" part of all indicators
-
-
-LLM_MODEL = "####"  #A large model used to meticulously determine whether something is repetitive
-LLM_API_KEY = "EMPTY"
-LLM_BASE_URL = "####"
-
-
-EMBEDDING_MODEL = "####"    #Model for embeddings
-EMBEDDING_API_KEY = "EMPTY"
-EMBEDDING_BASE_URL = "####"
-
-
-CONCURRENCY_LIMIT = 50  #CONCURRENCY for embedding.
-
-
 class PipelineProcessor:
-    def __init__(self):
-        self.llm_client = AsyncOpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
-        self.embedding_client = AsyncOpenAI(api_key=EMBEDDING_API_KEY, base_url=EMBEDDING_BASE_URL)
-        self.semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+    def __init__(self, args):
+        self.input_data_file = args.input_data_file
+        self.output_metrics_file = args.output_metrics_file
+        self.output_embedding_file = args.output_embedding_file
+        self.llm_model = args.llm_model
+        self.embedding_model = args.embedding_model
+        self.llm_client = AsyncOpenAI(api_key=args.llm_key, base_url=args.llm_url)
+        self.embedding_client = AsyncOpenAI(api_key=args.embedding_key, base_url=args.embedding_url)
         
   
         self.unique_pool = []
@@ -44,21 +30,19 @@ class PipelineProcessor:
    
         if not text: return np.array([])
         try:
-
-            async with self.semaphore:
-                for _ in range(3):
-                    try:
-                        response = await self.embedding_client.embeddings.create(
-                            model=EMBEDDING_MODEL, 
-                            input=[text]
-                        )
-                        vec = np.array(response.data[0].embedding, dtype=np.float32)
-                        norm = np.linalg.norm(vec)
-                        if norm > 0: vec = vec / norm
-                        return vec
-                    except Exception:
-                        await asyncio.sleep(1)
-                return np.array([])
+            for _ in range(3):
+                try:
+                    response = await self.embedding_client.embeddings.create(
+                        model=self.embedding_model,
+                        input=[text]
+                    )
+                    vec = np.array(response.data[0].embedding, dtype=np.float32)
+                    norm = np.linalg.norm(vec)
+                    if norm > 0: vec = vec / norm
+                    return vec
+                except Exception:
+                    await asyncio.sleep(1)
+            return np.array([])
         except Exception as e:
             print(f"[Embed Error] {e}")
             return np.array([])
@@ -144,7 +128,7 @@ Output JSON ONLY: {{"is_duplicate": true/false}}
     
         try:
             resp = await self.llm_client.chat.completions.create(
-                model=LLM_MODEL,
+                model=self.llm_model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
                 max_tokens=100
@@ -159,9 +143,8 @@ Output JSON ONLY: {{"is_duplicate": true/false}}
      
         print(f"\n>>> Phase 1: Deduplication (Based on Definition) <<<")
         
-        iterator = tqdm_asyncio(raw_metrics, desc="Deduplicating")
-        
-        for m in iterator:
+        for idx, m in enumerate(raw_metrics, start=1):
+            print(f"[Dedup {idx}/{len(raw_metrics)}] {m.get('name', 'unknown')}")
             name = m.get("name")
             definition = m.get("detailed_definition", "")
             
@@ -209,14 +192,17 @@ Output JSON ONLY: {{"is_duplicate": true/false}}
             tasks.append(self._embed_trigger_and_format(metric["name"], text_to_embed))
 
 
-        results = await tqdm_asyncio.gather(*tasks, desc="Embedding Triggers")
+        results = []
+        for idx, task in enumerate(tasks, start=1):
+            print(f"[Embed {idx}/{len(tasks)}]")
+            results.append(await task)
         
    
-        with open(OUTPUT_METRICS_FILE, "w", encoding="utf-8") as f:
+        with open(self.output_metrics_file, "w", encoding="utf-8") as f:
             json.dump(final_metrics_list, f, indent=4, ensure_ascii=False)
             
  
-        with open(OUTPUT_EMBEDDING_FILE, "w", encoding="utf-8") as f:
+        with open(self.output_embedding_file, "w", encoding="utf-8") as f:
             valid_count = 0
             for res in results:
                 if res:
@@ -224,8 +210,8 @@ Output JSON ONLY: {{"is_duplicate": true/false}}
                     valid_count += 1
                     
         print(f"\nAll Done!")
-        print(f"1. Clean Metrics saved to: {OUTPUT_METRICS_FILE}")
-        print(f"2. Trigger Embeddings saved to: {OUTPUT_EMBEDDING_FILE} (Count: {valid_count})")
+        print(f"1. Clean Metrics saved to: {self.output_metrics_file}")
+        print(f"2. Trigger Embeddings saved to: {self.output_embedding_file} (Count: {valid_count})")
 
     async def _embed_trigger_and_format(self, name: str, text: str) -> Dict:
   
@@ -240,12 +226,12 @@ Output JSON ONLY: {{"is_duplicate": true/false}}
 
     async def run(self):
 
-        raw_metrics = self.extract_raw_metrics(INPUT_DATA_FILE)
+        raw_metrics = self.extract_raw_metrics(self.input_data_file)
         if not raw_metrics: return
 
   
-        if os.path.exists(OUTPUT_METRICS_FILE): os.remove(OUTPUT_METRICS_FILE)
-        if os.path.exists(OUTPUT_EMBEDDING_FILE): os.remove(OUTPUT_EMBEDDING_FILE)
+        if os.path.exists(self.output_metrics_file): os.remove(self.output_metrics_file)
+        if os.path.exists(self.output_embedding_file): os.remove(self.output_embedding_file)
 
      
         await self.phase1_deduplication(raw_metrics)
@@ -254,5 +240,24 @@ Output JSON ONLY: {{"is_duplicate": true/false}}
         await self.phase2_finalize()
 
 if __name__ == "__main__":
-    pipeline = PipelineProcessor()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_data_file", default="results/part_0.json")
+    parser.add_argument("--output_metrics_file", default="metrics_pool_deduped.json")
+    parser.add_argument("--output_embedding_file", default="metrics_embeddings_trigger.jsonl")
+    parser.add_argument("--llm_model", default=os.environ.get("SUPERVISOR_MODEL"))
+    parser.add_argument("--llm_url", default=os.environ.get("SUPERVISOR_URL"))
+    parser.add_argument("--llm_key", default=os.environ.get("SUPERVISOR_KEY", "EMPTY"))
+    parser.add_argument("--embedding_model", default=os.environ.get("EMBEDDING_MODEL"))
+    parser.add_argument("--embedding_url", default=os.environ.get("EMBEDDING_URL"))
+    parser.add_argument("--embedding_key", default=os.environ.get("EMBEDDING_KEY", "EMPTY"))
+    args = parser.parse_args()
+
+    missing = [
+        name for name in ("llm_model", "llm_url", "embedding_model", "embedding_url")
+        if not getattr(args, name)
+    ]
+    if missing:
+        raise SystemExit(f"Missing required settings: {', '.join(missing)}")
+
+    pipeline = PipelineProcessor(args)
     asyncio.run(pipeline.run())

@@ -1,10 +1,8 @@
 import json
 import os
 import re
+import argparse
 
-
-FILE_PATH = "###-part_0.json"  #The path of the test result file
-# ===========================================
 
 def load_messy_json(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -75,12 +73,16 @@ def check_entry_correctness(entry, index):
     return False
 
 def main():
-    if not os.path.exists(FILE_PATH):
-        print(f"Error: File not found at {FILE_PATH}")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("file_path")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.file_path):
+        print(f"Error: File not found at {args.file_path}")
         return
 
-    print(f"Loading data from: {FILE_PATH} ...")
-    data_items = load_messy_json(FILE_PATH)
+    print(f"Loading data from: {args.file_path} ...")
+    data_items = load_messy_json(args.file_path)
     
     total = len(data_items)
     correct_count = 0
