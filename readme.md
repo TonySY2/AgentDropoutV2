@@ -109,17 +109,6 @@ models in the endpoint environment. For the 8B code table, use
 indicator pool through the environment variables described in
 [docs/experiment_matrix.md](docs/experiment_matrix.md).
 
-## Current Paper Tables
-
-The current release snapshot is in [docs/release_results.md](docs/release_results.md).
-
-- Table 1: 8B math results across Single Agent, CoT, Fixed-MAS, Dynamic-MAS,
-  external methods, ADv1, and ADv2, split into easy and hard task groups.
-- Table 2: 14B math transfer results with Single Agent, Dynamic-MAS, and ADv2.
-- Table 3: 8B code results for Dynamic-MAS and its rectification baselines.
-- Table 4: Math ablations covering iteration count, retrieved indicator count,
-  pass threshold, pool deduplication, random retrieval, and the no-pool control.
-
 ## Indicator Pools
 
 The bundled math pool is small enough for GitHub. Larger MAS/code pools should
