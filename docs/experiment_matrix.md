@@ -82,21 +82,19 @@ bash test/run-gsm8k.sh --method adv2_math_main --model-profile math_8b --limit 2
 | --- | --- | --- |
 | `autogen_baseline` | Dynamic-MAS / AutoGen baseline | `--baseline_only` |
 | `adv2_math_main` | Main math row | `--retrieval_mode rerank --retrieve_p 20 --select_q 5 --batch_audit_metrics --pass_rate 0.6 --retries_times 3` |
-| `adv2_math_pass_5of5` | Pass-threshold ablation | Same as main, `--pass_rate 1.0` |
-| `adv2_math_pass_2of5` | Pass-threshold ablation | Same as main, `--pass_rate 0.4` |
-| `adv2_math_top4_pass2of4` | Indicator-budget ablation | `--select_q 4 --pass_rate 0.5` |
-| `adv2_math_top4_pass3of4` | Indicator-budget ablation | `--select_q 4 --pass_rate 0.75` |
-| `adv2_math_top3_pass3of3` | Indicator-budget ablation | `--select_q 3 --pass_rate 1.0` |
-| `adv2_math_iter0` | Iteration ablation | Same as main, `--retries_times 0` |
-| `adv2_math_iter2` | Iteration ablation | Same as main, `--retries_times 2` |
-| `adv2_math_iter4` | Iteration ablation | Same as main, `--retries_times 4` |
-| `adv2_math_random_1to5` | Retrieval-control ablation | `--retrieval_mode random --random_k_min 1 --random_k_max 5` |
-| `adv2_math_nondedup_pool` | Pool-control ablation | Same as main, with an externally supplied non-deduplicated pool |
+| `adv2_math_iter2` | Table 4 iteration ablation | Same as main, `--retries_times 2` |
+| `adv2_math_iter4` | Table 4 iteration ablation | Same as main, `--retries_times 4` |
+| `adv2_math_top3` | Table 4 retrieved-indicator ablation | Same as main, `--select_q 3` |
+| `adv2_math_top7` | Table 4 retrieved-indicator ablation | Same as main, `--select_q 7` |
+| `adv2_math_pass_2of5` | Table 4 pass-threshold ablation | Same as main, `--pass_rate 0.4` |
+| `adv2_math_pass_5of5` | Table 4 pass-threshold ablation | Same as main, `--pass_rate 1.0` |
+| `adv2_math_nondedup_pool` | Table 4 pool-deduplication ablation | Same as main, with an externally supplied non-deduplicated pool |
+| `adv2_math_random_1to5` | Table 4 retrieval-control ablation | `--retrieval_mode random --random_k_min 1 --random_k_max 5` |
+| `adv2_math_no_indicator_pool` | Table 4 no-pool control | Uses the low-level universal audit switch |
 | `adv2_code_main` | Main code row | `--retrieval_mode direct --direct_k 3 --batch_audit_metrics --pass_rate 1.0` |
 
-`simple audit` remains as a legacy command-line switch in the low-level runners
-for backward compatibility, but it is not exposed as a paper-facing method
-preset in this release.
+The no-pool control activates a low-level universal audit path used only for
+the Table 4 control row.
 
 ## Indicator Pool Notes
 

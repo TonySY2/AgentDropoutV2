@@ -122,7 +122,7 @@
       }
     },
     "adv2_math_pass_5of5": {
-      "description": "Pass-threshold ablation: top20 -> <=top5, pass 5/5.",
+      "description": "Table 4 pass-threshold ablation: top20 -> <=top5, 100% pass threshold.",
       "pool": "math_deduped",
       "args": {
         "retrieval_mode": "rerank",
@@ -134,7 +134,7 @@
       }
     },
     "adv2_math_pass_2of5": {
-      "description": "Pass-threshold ablation: top20 -> <=top5, pass 2/5.",
+      "description": "Table 4 pass-threshold ablation: top20 -> <=top5, 40% pass threshold.",
       "pool": "math_deduped",
       "args": {
         "retrieval_mode": "rerank",
@@ -145,56 +145,8 @@
         "retries_times": 3
       }
     },
-    "adv2_math_top4_pass2of4": {
-      "description": "Indicator-budget ablation: top20 -> <=top4, pass 2/4.",
-      "pool": "math_deduped",
-      "args": {
-        "retrieval_mode": "rerank",
-        "retrieve_p": 20,
-        "select_q": 4,
-        "batch_audit_metrics": true,
-        "pass_rate": 0.5,
-        "retries_times": 3
-      }
-    },
-    "adv2_math_top4_pass3of4": {
-      "description": "Indicator-budget ablation: top20 -> <=top4, pass 3/4.",
-      "pool": "math_deduped",
-      "args": {
-        "retrieval_mode": "rerank",
-        "retrieve_p": 20,
-        "select_q": 4,
-        "batch_audit_metrics": true,
-        "pass_rate": 0.75,
-        "retries_times": 3
-      }
-    },
-    "adv2_math_top3_pass3of3": {
-      "description": "Indicator-budget ablation: top20 -> <=top3, pass 3/3.",
-      "pool": "math_deduped",
-      "args": {
-        "retrieval_mode": "rerank",
-        "retrieve_p": 20,
-        "select_q": 3,
-        "batch_audit_metrics": true,
-        "pass_rate": 1.0,
-        "retries_times": 3
-      }
-    },
-    "adv2_math_iter0": {
-      "description": "Iteration ablation with zero rectification retries.",
-      "pool": "math_deduped",
-      "args": {
-        "retrieval_mode": "rerank",
-        "retrieve_p": 20,
-        "select_q": 5,
-        "batch_audit_metrics": true,
-        "pass_rate": 0.6,
-        "retries_times": 0
-      }
-    },
     "adv2_math_iter2": {
-      "description": "Iteration ablation with two rectification retries.",
+      "description": "Table 4 iteration ablation with two rectification retries.",
       "pool": "math_deduped",
       "args": {
         "retrieval_mode": "rerank",
@@ -206,7 +158,7 @@
       }
     },
     "adv2_math_iter4": {
-      "description": "Iteration ablation with four rectification retries.",
+      "description": "Table 4 iteration ablation with four rectification retries.",
       "pool": "math_deduped",
       "args": {
         "retrieval_mode": "rerank",
@@ -217,8 +169,32 @@
         "retries_times": 4
       }
     },
+    "adv2_math_top3": {
+      "description": "Table 4 retrieved-indicator ablation: top20 -> <=top3.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 3,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_top7": {
+      "description": "Table 4 retrieved-indicator ablation: top20 -> <=top7.",
+      "pool": "math_deduped",
+      "args": {
+        "retrieval_mode": "rerank",
+        "retrieve_p": 20,
+        "select_q": 7,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 3
+      }
+    },
     "adv2_math_random_1to5": {
-      "description": "Retrieval-control ablation with random 1-5 indicators.",
+      "description": "Table 4 retrieval-control ablation with random 1-5 indicators.",
       "pool": "math_deduped",
       "args": {
         "retrieval_mode": "random",
@@ -230,12 +206,22 @@
       }
     },
     "adv2_math_nondedup_pool": {
-      "description": "Pool-control ablation with the non-deduplicated indicator pool.",
+      "description": "Table 4 pool-control ablation with the non-deduplicated indicator pool.",
       "pool": "math_nondedup",
       "args": {
         "retrieval_mode": "rerank",
         "retrieve_p": 20,
         "select_q": 5,
+        "batch_audit_metrics": true,
+        "pass_rate": 0.6,
+        "retries_times": 3
+      }
+    },
+    "adv2_math_no_indicator_pool": {
+      "description": "Table 4 no-pool control using the low-level universal audit path.",
+      "pool": "math_deduped",
+      "args": {
+        "use_simple_audit": true,
         "batch_audit_metrics": true,
         "pass_rate": 0.6,
         "retries_times": 3

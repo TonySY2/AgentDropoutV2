@@ -430,7 +430,7 @@ if __name__ == '__main__':
     
     parser.add_argument("--baseline_only", action="store_true")
 
-    parser.add_argument("--use_simple_audit", type=int, default=0, help="")
+    parser.add_argument("--use_simple_audit", nargs="?", const=1, type=int, default=0, help="")
     
 
     

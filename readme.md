@@ -10,7 +10,9 @@ Test-Time Rectify-or-Reject Pruning**.
 
 ## News
 
-- **2026-05-22**: Release configuration matrix refreshed for the current paper tables. `simple audit` is kept only as a legacy low-level switch and is not exposed as a paper-facing method preset.
+- **2026-05-22**: Release tables and README figures were aligned with the
+  current 2026-05-22 paper PDF. The main tables now follow the compact
+  accuracy-only paper format.
 - **2026-03-03**: Indicator pool dataset is available on Hugging Face: [TonySY2/AgentDropoutV2-Indicator-Pool](https://huggingface.co/datasets/TonySY2/AgentDropoutV2-Indicator-Pool).
 - **2026-02-27**: Initial code and dataset release.
 - **2026-02-27**: Paper published on arXiv: [arXiv:2602.23258](https://arxiv.org/abs/2602.23258).
@@ -27,6 +29,10 @@ multi-agent systems without retraining the base agents. During MAS execution it:
 5. falls back to the original MAS path when pruning would collapse the team.
 
 <p align="center">
+  <img src="image/readme/adv1-vs-adv2.png" alt="ADv1 versus ADv2 overview">
+</p>
+
+<p align="center">
   <img src="image/readme/main-picture.png" alt="AgentDropoutV2 framework">
 </p>
 
@@ -35,7 +41,7 @@ multi-agent systems without retraining the base agents. During MAS execution it:
 ```text
 configs/release_experiments.json  Paper-facing benchmarks, pools, and method presets.
 docs/experiment_matrix.md          How to run the current main and ablation configurations.
-docs/release_results.md            Current Table 1 / Table 2 / Table 3 result snapshot.
+docs/release_results.md            Current Table 1 / Table 2 / Table 3 / Table 4 snapshot.
 test/                             Test-time inference, benchmark loaders, and public launcher.
 train/                            Training-time collection and indicator-pool construction.
 image/readme/                     README figures.
@@ -107,13 +113,12 @@ indicator pool through the environment variables described in
 
 The current release snapshot is in [docs/release_results.md](docs/release_results.md).
 
-- Table 1: 8B math MAS results across Single Agent, Fixed-MAS, Dynamic-MAS,
-  external methods, ADv1, and ADv2.
-- Table 2: 14B math Dynamic-MAS results.
-- Table 3: 8B code results, including CoT, MAD, Fixed-MAS, Dynamic-MAS, external
-  methods, and ADv2.
-- Math ablations: pass threshold, indicator budget, retry count, random retrieval,
-  and pool deduplication controls.
+- Table 1: 8B math results across Single Agent, CoT, Fixed-MAS, Dynamic-MAS,
+  external methods, ADv1, and ADv2, split into easy and hard task groups.
+- Table 2: 14B math transfer results with Single Agent, Dynamic-MAS, and ADv2.
+- Table 3: 8B code results for Dynamic-MAS and its rectification baselines.
+- Table 4: Math ablations covering iteration count, retrieved indicator count,
+  pass threshold, pool deduplication, random retrieval, and the no-pool control.
 
 ## Indicator Pools
 
