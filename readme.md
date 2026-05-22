@@ -13,7 +13,8 @@ Test-Time Rectify-or-Reject Pruning**.
 - **2026-05-22**: Release tables and README figures were aligned with the
   current 2026-05-22 paper PDF. The main tables now follow the compact
   accuracy-only paper format.
-- **2026-03-03**: Indicator pool dataset is available on Hugging Face: [TonySY2/AgentDropoutV2-Indicator-Pool](https://huggingface.co/datasets/TonySY2/AgentDropoutV2-Indicator-Pool).
+- **2026-05-22**: Math and code indicator-pool JSON files are bundled in the
+  GitHub release. Precomputed embedding caches are optional external artifacts.
 - **2026-02-27**: Initial code and dataset release.
 - **2026-02-27**: Paper published on arXiv: [arXiv:2602.23258](https://arxiv.org/abs/2602.23258).
 
@@ -105,19 +106,42 @@ bash test/run-gsm8k.sh --method adv2_math_main --model-profile math_8b --limit 2
 
 For the 14B math table, use the same benchmark/method presets with 14B served
 models in the endpoint environment. For the 8B code table, use
-`--method adv2_code_main --model-profile code_8b` and supply the mixed code
-indicator pool through the environment variables described in
-[docs/experiment_matrix.md](docs/experiment_matrix.md).
+`--method adv2_code_main --model-profile code_8b`.
 
 ## Indicator Pools
 
-The bundled math pool is small enough for GitHub. Larger math/code indicator
-pools should be hosted externally, for example on Hugging Face, and provided at
-runtime:
+The math and code indicator-pool JSON files are bundled in this repository:
+
+```text
+test/metrics_pool/two_pool/deduped-mixed_metrics_two_pool.json
+test/metrics_pool/two_pool/mixed_metrics_two_pool.json
+test/metrics_pool/code_mixed/deduplicated_metrics_pool.json
+```
+
+Precomputed embedding caches can exceed GitHub's single-file size limit. They
+are optional release artifacts: either generate them locally, or host them
+outside the repository and pass them at runtime. `AGENTDROPOUT_METRIC_POOL_FILE`
+is mainly for optional local overrides:
 
 ```bash
 export AGENTDROPOUT_METRIC_POOL_FILE="/path/to/pool.json"
 export AGENTDROPOUT_EMBEDDING_CACHE_FILE="/path/to/pool_embeddings.jsonl"
+```
+
+For example, to generate the mixed code embedding cache:
+
+```bash
+python test/metrics_pool/two_pool/embed_metrics-trigger.py \
+  --input_file test/metrics_pool/code_mixed/deduplicated_metrics_pool.json \
+  --output_cache_file test/metrics_pool/code_mixed/deduplicated_embeddings-trigger.jsonl
+```
+
+For the math non-deduplication ablation, generate the matching cache with:
+
+```bash
+python test/metrics_pool/two_pool/embed_metrics-trigger.py \
+  --input_file test/metrics_pool/two_pool/mixed_metrics_two_pool.json \
+  --output_cache_file test/metrics_pool/two_pool/mixed_embeddings_cache_two_pool.jsonl
 ```
 
 To build a custom pool:

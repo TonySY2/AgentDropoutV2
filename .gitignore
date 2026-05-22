@@ -7,5 +7,8 @@ test/results_release/
 train/results-*/
 *.log
 
+# Embedding caches are generated artifacts and can be large.
+test/metrics_pool/**/*.jsonl
+
 # Local preview assets that are not part of the public release.
 image/readme/*preview*

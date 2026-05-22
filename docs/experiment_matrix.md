@@ -29,7 +29,7 @@ export SUPERVISOR_KEY="EMPTY"
 export EMBEDDING_KEY="EMPTY"
 ```
 
-For externally hosted indicator pools, also set:
+For optional pool overrides or externally hosted embedding caches, also set:
 
 ```bash
 export AGENTDROPOUT_METRIC_POOL_FILE="/path/to/pool.json"
@@ -98,10 +98,27 @@ the Table 4 control row.
 
 ## Indicator Pool Notes
 
-The bundled math pool is small enough for GitHub. Larger math/code indicator
-pools should be distributed outside the repository, for example through a
-Hugging Face dataset, and passed to the launcher with
-`AGENTDROPOUT_METRIC_POOL_FILE` and `AGENTDROPOUT_EMBEDDING_CACHE_FILE`.
+The math and code indicator-pool JSON files are bundled in this
+repository under `test/metrics_pool/`. Precomputed embedding caches can exceed
+GitHub's single-file size limit, so they are optional release artifacts. Either
+generate them locally or host them outside the repository and pass them to the
+launcher with `AGENTDROPOUT_EMBEDDING_CACHE_FILE`.
+
+For example, to generate the mixed code embedding cache:
+
+```bash
+python test/metrics_pool/two_pool/embed_metrics-trigger.py \
+  --input_file test/metrics_pool/code_mixed/deduplicated_metrics_pool.json \
+  --output_cache_file test/metrics_pool/code_mixed/deduplicated_embeddings-trigger.jsonl
+```
+
+For the math non-deduplication ablation:
+
+```bash
+python test/metrics_pool/two_pool/embed_metrics-trigger.py \
+  --input_file test/metrics_pool/two_pool/mixed_metrics_two_pool.json \
+  --output_cache_file test/metrics_pool/two_pool/mixed_embeddings_cache_two_pool.jsonl
+```
 
 Training-time scripts in `train/` collect raw trajectories for building a pool.
 They now run a single foreground job controlled by environment variables. After

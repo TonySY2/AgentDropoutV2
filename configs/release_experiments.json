@@ -6,14 +6,14 @@
       "note": "Small public math indicator pool. Generate the embedding cache before running if it is absent."
     },
     "math_nondedup": {
-      "metric_pool_file_env": "AGENTDROPOUT_METRIC_POOL_FILE",
-      "embedding_cache_file_env": "AGENTDROPOUT_EMBEDDING_CACHE_FILE",
-      "note": "Non-deduplicated pool used by the pool-control ablation. Host externally when the full pool is too large for GitHub."
+      "metric_pool_file": "test/metrics_pool/two_pool/mixed_metrics_two_pool.json",
+      "embedding_cache_file": "test/metrics_pool/two_pool/mixed_embeddings_cache_two_pool.jsonl",
+      "note": "Bundled non-deduplicated math indicator pool for the pool-control ablation. Generate the embedding cache before running if it is absent."
     },
     "code_mixed": {
-      "metric_pool_file_env": "AGENTDROPOUT_METRIC_POOL_FILE",
-      "embedding_cache_file_env": "AGENTDROPOUT_EMBEDDING_CACHE_FILE",
-      "note": "Mixed code indicator pool. The full pool can be provided through env vars or a Hugging Face dataset download."
+      "metric_pool_file": "test/metrics_pool/code_mixed/deduplicated_metrics_pool.json",
+      "embedding_cache_file": "test/metrics_pool/code_mixed/deduplicated_embeddings-trigger.jsonl",
+      "note": "Bundled mixed code indicator pool. Generate the embedding cache before running if it is absent."
     }
   },
   "benchmarks": {
