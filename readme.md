@@ -111,8 +111,9 @@ indicator pool through the environment variables described in
 
 ## Indicator Pools
 
-The bundled math pool is small enough for GitHub. Larger MAS/code pools should
-be hosted externally, for example on Hugging Face, and provided at runtime:
+The bundled math pool is small enough for GitHub. Larger math/code indicator
+pools should be hosted externally, for example on Hugging Face, and provided at
+runtime:
 
 ```bash
 export AGENTDROPOUT_METRIC_POOL_FILE="/path/to/pool.json"

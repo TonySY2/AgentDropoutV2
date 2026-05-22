@@ -98,10 +98,10 @@ the Table 4 control row.
 
 ## Indicator Pool Notes
 
-The bundled math pool is small enough for GitHub. Larger MAS/code pools should
-be distributed outside the repository, for example through a Hugging Face
-dataset, and passed to the launcher with `AGENTDROPOUT_METRIC_POOL_FILE` and
-`AGENTDROPOUT_EMBEDDING_CACHE_FILE`.
+The bundled math pool is small enough for GitHub. Larger math/code indicator
+pools should be distributed outside the repository, for example through a
+Hugging Face dataset, and passed to the launcher with
+`AGENTDROPOUT_METRIC_POOL_FILE` and `AGENTDROPOUT_EMBEDDING_CACHE_FILE`.
 
 Training-time scripts in `train/` collect raw trajectories for building a pool.
 They now run a single foreground job controlled by environment variables. After
