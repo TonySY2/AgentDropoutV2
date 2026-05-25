@@ -165,9 +165,8 @@ bash run-math-train.sh
 python Extraction-deduplication-embedding.py
 ```
 
-The training scripts run a single foreground job and are controlled entirely by
-environment variables. They do not include internal endpoint fan-out or
-background queueing.
+The training scripts are controlled by environment variables and write their
+outputs to the configured local paths.
 
 ## Common Arguments
 
@@ -193,9 +192,8 @@ background queueing.
 ## Privacy
 
 The public release should not contain private endpoint URLs, API keys, personal
-paths, server IPs, queue manifests, or internal acceleration settings. The
-launcher reads secrets from environment variables and masks key values when it
-prints commands.
+paths, server IPs, or local runtime settings. The launcher reads secrets from
+environment variables and masks key values when it prints commands.
 
 ## Citation
 

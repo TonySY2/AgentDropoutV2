@@ -1,12 +1,11 @@
 # Experiment Matrix
 
 This release exposes the paper-facing configurations through
-`configs/release_experiments.json` and the single-run launcher
-`test/run_release_experiment.py`.
+`configs/release_experiments.json` and `test/run_release_experiment.py`.
 
-The launcher runs one benchmark and one method preset in the foreground. It does
-not include internal multi-endpoint fan-out, queueing, or background execution.
-For larger sweeps, run this command repeatedly from an external scheduler.
+The launcher maps one benchmark and one method preset to a reproducible command.
+For larger sweeps, invoke the same command with the desired benchmark and method
+preset combinations.
 
 ## Required Environment
 
@@ -123,9 +122,8 @@ python test/metrics_pool/two_pool/embed_metrics-trigger.py \
   --output_cache_file test/metrics_pool/two_pool/mixed_embeddings_cache_two_pool.jsonl
 ```
 
-Training-time scripts in `train/` collect raw trajectories for building a pool.
-They now run a single foreground job controlled by environment variables. After
-collection, run:
+Training-time scripts in `train/` collect raw trajectories for building a pool
+and are controlled by environment variables. After collection, run:
 
 ```bash
 cd train

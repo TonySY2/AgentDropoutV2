@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""Single-run launcher for the public AgentDropoutV2 release.
+"""Launcher for the public AgentDropoutV2 release.
 
-This wrapper intentionally avoids internal multi-endpoint fan-out. It maps a
-benchmark plus a method preset to one foreground experiment command.
+This wrapper maps a benchmark plus a method preset to a reproducible
+experiment command.
 """
 
 from __future__ import annotations
