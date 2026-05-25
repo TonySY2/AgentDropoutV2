@@ -60,6 +60,9 @@ python test/run_release_experiment.py \
   --dry-run
 ```
 
+Dry-run mode prints endpoint placeholders when endpoint environment variables
+are unset.
+
 Run a small smoke subset:
 
 ```bash

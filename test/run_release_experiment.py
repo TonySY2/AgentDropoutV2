@@ -116,7 +116,8 @@ def build_command(args: argparse.Namespace, config: dict[str, Any]) -> list[str]
     output_dir = Path(args.output_dir)
     if not output_dir.is_absolute():
         output_dir = REPO_ROOT / output_dir
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if not args.dry_run:
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     out_file = output_dir / f"{args.benchmark}_{args.method}.json"
     log_file = output_dir / f"{args.benchmark}_{args.method}.log"
@@ -143,7 +144,10 @@ def build_command(args: argparse.Namespace, config: dict[str, Any]) -> list[str]
         if not value and not required:
             value = "EMPTY"
         if required and not value:
-            raise SystemExit(f"Missing required environment variable: {env_name}")
+            if args.dry_run:
+                value = f"<{env_name}>"
+            else:
+                raise SystemExit(f"Missing required environment variable: {env_name}")
         cmd.extend(["--" + key, value])
 
     if args.limit is not None:

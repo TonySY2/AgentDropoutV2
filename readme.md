@@ -10,6 +10,8 @@ Test-Time Rectify-or-Reject Pruning**.
 
 ## News
 
+- **2026-05-25**: Release result documentation was updated to the current
+  PRM800K baseline rows used by the paper-facing tables.
 - **2026-05-22**: Release tables and README figures were aligned with the
   current 2026-05-22 paper PDF. The main tables now follow the compact
   accuracy-only paper format.
@@ -86,6 +88,17 @@ List available benchmarks and method presets:
 
 ```bash
 python test/run_release_experiment.py --list
+```
+
+Preview the command shape without configured endpoints:
+
+```bash
+python test/run_release_experiment.py \
+  --benchmark gsm8k \
+  --method adv2_math_main \
+  --model-profile math_8b \
+  --limit 2 \
+  --dry-run
 ```
 
 Run the current math main configuration on a small subset:
