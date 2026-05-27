@@ -10,15 +10,10 @@ Test-Time Rectify-or-Reject Pruning**.
 
 ## News
 
-- **2026-05-26**: Paper submitted; the arXiv preprint is available at
+- **2026-05-27**: arXiv preprint released:
   [arXiv:2602.23258](https://arxiv.org/abs/2602.23258).
-- **2026-05-25**: Release result documentation was updated to the current
-  PRM800K baseline rows used by the paper-facing tables.
-- **2026-05-22**: Release tables and README figures were aligned with the
-  current 2026-05-22 paper PDF. The main tables now follow the compact
-  accuracy-only paper format.
 - **2026-05-22**: Math and code indicator-pool JSON files are bundled in the
-  GitHub release. Precomputed embedding caches are optional external artifacts.
+  GitHub release.
 - **2026-02-27**: Initial code and dataset release.
 
 ## Overview
